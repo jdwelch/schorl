@@ -58,10 +58,17 @@ Supported metadata:
 - Uses regex patterns to parse all Obsidian Tasks metadata
 
 **`src/utils/storage.ts`** - Storage abstraction layer:
-- Currently uses AsyncStorage for local persistence
-- Designed to swap to Supabase backend later
-- Exports `storage` object with `getContent()` and `saveContent()` methods
-- Stores a single markdown document containing all tasks
+- **Current Implementation**: AsyncStorage for device-local persistence only
+- **Storage Key**: `@md-tasks:content` - stores entire document as single string
+- **Interface**: `StorageAPI` with `getContent()` and `saveContent()` methods
+- **Design**: Clean abstraction ready for backend swap - storage implementation can be changed by swapping `localStorageAPI`
+- **Data Model**: Plain markdown text with no task IDs, versioning, or metadata beyond inline syntax
+- **Sync Strategy**: None currently - loads once on mount, saves on every content change
+- **Limitations**:
+  - No multi-device sync
+  - No conflict resolution
+  - No user authentication
+  - Saves on every keystroke (would need debouncing for remote storage)
 
 **`src/types/task.types.ts`** - TypeScript interfaces:
 - `TaskMetadata` - Parsed task information
