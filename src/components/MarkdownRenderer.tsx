@@ -220,9 +220,30 @@ export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeCh
   const tasksByIndex: Record<number, { line: string; metadata: any }> = {};
 
   lines.forEach((line, index) => {
+    // Check if line is an empty task (e.g., "- [ ]" with no description)
+    const emptyTaskRegex = /^\s*[-*+]\s+\[([ xX])\]\s*$/;
+    const isEmptyTask = emptyTaskRegex.test(line);
+
+    if (isEmptyTask) {
+      // Skip empty tasks entirely - don't render them
+      return;
+    }
+
     if (taskLineIndices.has(index)) {
       const taskMetadata = parseTaskLine(line);
-      tasksByIndex[index] = { line, metadata: taskMetadata };
+
+      // Extract display text (same logic as TaskLine component)
+      const descriptionMatch = taskMetadata.description.match(
+        /^(.+?)(?:\s*📅|\s*⏳|\s*🔁|\s*✅|\s*➕|\s*⏫|\s*🔼|\s*🔽|\s*⏬|$)/
+      );
+      const displayText = descriptionMatch ? descriptionMatch[1].trim() : taskMetadata.description.trim();
+
+      // Skip empty tasks (tasks with no meaningful description after metadata removal)
+      // Check both the displayText and the raw description
+      if (displayText && displayText.length > 0) {
+        tasksByIndex[index] = { line, metadata: taskMetadata };
+      }
+      // Note: we don't add empty tasks to regularContent either, just skip them entirely
     } else {
       regularContent += line + '\n';
     }

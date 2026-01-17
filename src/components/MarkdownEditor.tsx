@@ -2,6 +2,7 @@ import { View, TextInput, Pressable, StyleSheet, Modal, Text, Platform } from 'r
 import { CheckSquare, Calendar, Repeat, Edit2, Eye } from 'lucide-react-native';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { Picker } from '@react-native-picker/picker';
 import { parseTaskLine, insertDueDate, insertRecurrence } from '@/src/utils/taskParser';
 
 interface DateOption {
@@ -233,15 +234,19 @@ const styles = StyleSheet.create({
       default: 'monospace',
     }),
   },
-  recurrenceInputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginVertical: 8,
+  recurrenceModalContent: {
+    backgroundColor: '#262626',
+    borderRadius: 12,
+    padding: 20,
+    width: 280,
+    borderWidth: 1,
+    borderColor: '#374151',
   },
   recurrenceLabel: {
     fontSize: 16,
     color: '#f3f4f6',
+    marginBottom: 12,
+    textAlign: 'center',
   },
   recurrenceNumberInput: {
     backgroundColor: '#1a1a1a',
@@ -250,21 +255,19 @@ const styles = StyleSheet.create({
     borderColor: '#374151',
     borderRadius: 6,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 12,
     fontSize: 16,
-    minWidth: 60,
     textAlign: 'center',
+    marginBottom: 12,
   },
   recurrencePicker: {
     backgroundColor: '#1a1a1a',
+    marginBottom: 16,
+    height: 150,
+  },
+  recurrencePickerItem: {
     color: '#e5e7eb',
-    borderWidth: 1,
-    borderColor: '#374151',
-    borderRadius: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 16,
-    minWidth: 100,
+    fontSize: 18,
   },
 });
 
@@ -703,60 +706,51 @@ export default function MarkdownEditor({
         onRequestClose={handleRecurrenceCancel}
       >
         <Pressable style={styles.modalOverlay} onPress={handleRecurrenceCancel}>
-          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+          <Pressable style={styles.recurrenceModalContent} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.modalTitle}>Set Recurrence</Text>
 
-            <View style={styles.recurrenceInputRow}>
-              <Text style={styles.recurrenceLabel}>Every</Text>
-              <TextInput
-                style={styles.recurrenceNumberInput}
-                value={recurrenceInterval}
-                onChangeText={setRecurrenceInterval}
-                keyboardType="number-pad"
-                placeholder="1"
-                placeholderTextColor="#6b7280"
-              />
-              {Platform.OS === 'web' ? (
-                <select
-                  value={recurrenceUnit}
-                  onChange={(e) => setRecurrenceUnit(e.target.value as 'day' | 'week' | 'month')}
-                  style={{
-                    backgroundColor: '#1a1a1a',
-                    color: '#e5e7eb',
-                    border: '1px solid #374151',
-                    borderRadius: 6,
-                    paddingLeft: 12,
-                    paddingRight: 12,
-                    paddingTop: 8,
-                    paddingBottom: 8,
-                    fontSize: 16,
-                    minWidth: 100,
-                  }}
-                >
-                  <option value="day">days</option>
-                  <option value="week">weeks</option>
-                  <option value="month">months</option>
-                </select>
-              ) : (
-                <View style={styles.recurrencePicker}>
-                  <Pressable onPress={() => setRecurrenceUnit('day')}>
-                    <Text style={{ color: recurrenceUnit === 'day' ? '#3B82F6' : '#e5e7eb' }}>
-                      days
-                    </Text>
-                  </Pressable>
-                  <Pressable onPress={() => setRecurrenceUnit('week')}>
-                    <Text style={{ color: recurrenceUnit === 'week' ? '#3B82F6' : '#e5e7eb' }}>
-                      weeks
-                    </Text>
-                  </Pressable>
-                  <Pressable onPress={() => setRecurrenceUnit('month')}>
-                    <Text style={{ color: recurrenceUnit === 'month' ? '#3B82F6' : '#e5e7eb' }}>
-                      months
-                    </Text>
-                  </Pressable>
-                </View>
-              )}
-            </View>
+            <Text style={styles.recurrenceLabel}>Repeat every</Text>
+
+            <TextInput
+              style={styles.recurrenceNumberInput}
+              value={recurrenceInterval}
+              onChangeText={setRecurrenceInterval}
+              keyboardType="number-pad"
+              placeholder="1"
+              placeholderTextColor="#6b7280"
+            />
+
+            {Platform.OS === 'web' ? (
+              <select
+                value={recurrenceUnit}
+                onChange={(e) => setRecurrenceUnit(e.target.value as 'day' | 'week' | 'month')}
+                style={{
+                  backgroundColor: '#1a1a1a',
+                  color: '#e5e7eb',
+                  border: '1px solid #374151',
+                  borderRadius: 6,
+                  padding: 12,
+                  fontSize: 16,
+                  width: '100%',
+                  marginBottom: 16,
+                }}
+              >
+                <option value="day">days</option>
+                <option value="week">weeks</option>
+                <option value="month">months</option>
+              </select>
+            ) : (
+              <Picker
+                selectedValue={recurrenceUnit}
+                onValueChange={(itemValue) => setRecurrenceUnit(itemValue)}
+                style={styles.recurrencePicker}
+                itemStyle={styles.recurrencePickerItem}
+              >
+                <Picker.Item label="days" value="day" />
+                <Picker.Item label="weeks" value="week" />
+                <Picker.Item label="months" value="month" />
+              </Picker>
+            )}
 
             <View style={styles.modalButtons}>
               <Pressable
