@@ -31,7 +31,7 @@ type Mode = 'edit' | 'read';
 
 export default function TasksScreen() {
   const [loading, setLoading] = useState(true);
-  const [mode, setMode] = useState<Mode>('edit');
+  const [mode, setMode] = useState<Mode>('read');
   const [content, setContent] = useState('');
   const [lastCursorPosition, setLastCursorPosition] = useState<number>(0);
 
