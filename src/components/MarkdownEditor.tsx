@@ -93,6 +93,8 @@ interface MarkdownEditorProps {
   onToggleTask: (newContent: string) => void;
   mode: 'edit' | 'read';
   onModeChange: (mode: 'edit' | 'read') => void;
+  initialCursorPosition?: number;
+  onCursorPositionChange?: (position: number) => void;
 }
 
 const styles = StyleSheet.create({
@@ -272,6 +274,8 @@ export default function MarkdownEditor({
   onToggleTask,
   mode,
   onModeChange,
+  initialCursorPosition,
+  onCursorPositionChange,
 }: MarkdownEditorProps) {
   const textInputRef = useRef<TextInput>(null);
   const popoverRef = useRef<View>(null);
@@ -304,6 +308,32 @@ export default function MarkdownEditor({
       });
     }
   }, [content]);
+
+  // Restore cursor position when switching back to edit mode (only on mount)
+  useEffect(() => {
+    if (initialCursorPosition !== undefined && initialCursorPosition > 0) {
+      // Set selection to restore cursor position
+      setSelection({ start: initialCursorPosition, end: initialCursorPosition });
+      setCursorPosition(initialCursorPosition);
+      cursorPositionRef.current = initialCursorPosition;
+
+      // Focus the input
+      requestAnimationFrame(() => {
+        textInputRef.current?.focus();
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
+
+  // Report cursor position to parent when component is about to unmount
+  useEffect(() => {
+    return () => {
+      // Save cursor position when leaving edit mode
+      if (onCursorPositionChange) {
+        onCursorPositionChange(cursorPositionRef.current);
+      }
+    };
+  }, [onCursorPositionChange]);
 
   const handleDateCancel = useCallback(() => {
     setShowDateModal(false);
