@@ -1,7 +1,6 @@
-import { View, Pressable, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
-import { Edit2, Eye } from 'lucide-react-native';
 
 import { storage } from '@/src/utils/storage';
 import { parseTaskLine, createRecurringTask } from '@/src/utils/taskParser';
@@ -16,29 +15,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1a1a1a',
-  },
-  header: {
-    backgroundColor: '#262626',
-    borderBottomWidth: 1,
-    borderBottomColor: '#374151',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-  },
-  modeButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  modeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    backgroundColor: '#374151',
-  },
-  modeButtonActive: {
-    backgroundColor: '#3B82F6',
   },
   content: {
     flex: 1,
@@ -86,13 +62,8 @@ export default function TasksScreen() {
     setMode(newMode);
   };
 
-  const handleToggleTask = () => {
-    const newTask = '- [ ] New task\n';
-    if (content.trim()) {
-      handleContentChange(content + '\n' + newTask);
-    } else {
-      handleContentChange(newTask);
-    }
+  const handleToggleTask = (newContent: string) => {
+    handleContentChange(newContent);
   };
 
   if (loading) {
@@ -108,42 +79,21 @@ export default function TasksScreen() {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.modeButtons}>
-            <Pressable
-              onPress={() => handleModeChange('edit')}
-              style={[styles.modeButton, mode === 'edit' && styles.modeButtonActive]}
-            >
-              <Edit2
-                size={16}
-                color={mode === 'edit' ? '#fff' : '#9ca3af'}
-                strokeWidth={2}
-              />
-            </Pressable>
-            <Pressable
-              onPress={() => handleModeChange('read')}
-              style={[styles.modeButton, mode === 'read' && styles.modeButtonActive]}
-            >
-              <Eye
-                size={16}
-                color={mode === 'read' ? '#fff' : '#9ca3af'}
-                strokeWidth={2}
-              />
-            </Pressable>
-          </View>
-        </View>
-
         <View style={styles.content}>
           {mode === 'edit' && (
             <MarkdownEditor
               content={content}
               onContentChange={handleContentChange}
               onToggleTask={handleToggleTask}
+              mode={mode}
+              onModeChange={handleModeChange}
             />
           )}
           {mode === 'read' && (
             <MarkdownRenderer
               content={content}
+              mode={mode}
+              onModeChange={handleModeChange}
               onTaskToggle={(lineIndex, newLine) => {
                 const lines = content.split('\n');
                 const oldLine = lines[lineIndex];

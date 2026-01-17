@@ -2,10 +2,13 @@ import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
 import MarkdownDisplay from 'react-native-markdown-display';
 import { parseTaskLine } from '@/src/utils/taskParser';
 import TaskLine from '@/src/components/TaskLine';
+import { Toolbar } from '@/src/components/MarkdownEditor';
 
 interface MarkdownRendererProps {
   content: string;
   onTaskToggle: (lineIndex: number, newLine: string) => void;
+  mode: 'edit' | 'read';
+  onModeChange: (mode: 'edit' | 'read') => void;
 }
 
 const styles = StyleSheet.create({
@@ -191,10 +194,11 @@ const markdownStyles = {
   },
 };
 
-export default function MarkdownRenderer({ content, onTaskToggle }: MarkdownRendererProps) {
+export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeChange }: MarkdownRendererProps) {
   if (!content.trim()) {
     return (
       <View style={styles.container}>
+        <Toolbar mode={mode} onModeChange={onModeChange} />
         <Text style={styles.emptyText}>No content to display</Text>
       </View>
     );
@@ -226,6 +230,7 @@ export default function MarkdownRenderer({ content, onTaskToggle }: MarkdownRend
 
   return (
     <View style={styles.container}>
+      <Toolbar mode={mode} onModeChange={onModeChange} />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
         {/* Render markdown content first */}
         {regularContent.trim() && (

@@ -1,5 +1,5 @@
 import { View, TextInput, Pressable, StyleSheet, Modal, Text, Platform } from 'react-native';
-import { CheckSquare, Bold, Italic, Link as LinkIcon, Calendar, Repeat } from 'lucide-react-native';
+import { CheckSquare, Calendar, Repeat, Edit2, Eye } from 'lucide-react-native';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { parseTaskLine, insertDueDate, insertRecurrence } from '@/src/utils/taskParser';
@@ -34,10 +34,65 @@ function getDateOptions(): DateOption[] {
   ];
 }
 
+interface ToolbarProps {
+  mode: 'edit' | 'read';
+  onModeChange: (mode: 'edit' | 'read') => void;
+  onNewTask?: () => void;
+  onDatePicker?: () => void;
+  onRecurrence?: () => void;
+}
+
+export function Toolbar({ mode, onModeChange, onNewTask, onDatePicker, onRecurrence }: ToolbarProps) {
+  return (
+    <View style={styles.toolbar}>
+      {mode === 'edit' && (
+        <>
+          <Pressable style={styles.toolbarButton} onPress={onNewTask}>
+            <CheckSquare size={16} color="#9ca3af" strokeWidth={2} />
+          </Pressable>
+          <Pressable style={styles.toolbarButton} onPress={onDatePicker}>
+            <Calendar size={16} color="#9ca3af" strokeWidth={2} />
+          </Pressable>
+          <Pressable style={styles.toolbarButton} onPress={onRecurrence}>
+            <Repeat size={16} color="#9ca3af" strokeWidth={2} />
+          </Pressable>
+        </>
+      )}
+
+      <View style={styles.spacer} />
+
+      <View style={styles.modeButtons}>
+        <Pressable
+          onPress={() => onModeChange('edit')}
+          style={[styles.modeButton, mode === 'edit' && styles.modeButtonActive]}
+        >
+          <Edit2
+            size={16}
+            color={mode === 'edit' ? '#fff' : '#9ca3af'}
+            strokeWidth={2}
+          />
+        </Pressable>
+        <Pressable
+          onPress={() => onModeChange('read')}
+          style={[styles.modeButton, mode === 'read' && styles.modeButtonActive]}
+        >
+          <Eye
+            size={16}
+            color={mode === 'read' ? '#fff' : '#9ca3af'}
+            strokeWidth={2}
+          />
+        </Pressable>
+      </View>
+    </View>
+  );
+}
+
 interface MarkdownEditorProps {
   content: string;
   onContentChange: (content: string) => void;
-  onToggleTask: () => void;
+  onToggleTask: (newContent: string) => void;
+  mode: 'edit' | 'read';
+  onModeChange: (mode: 'edit' | 'read') => void;
 }
 
 const styles = StyleSheet.create({
@@ -47,22 +102,33 @@ const styles = StyleSheet.create({
   },
   toolbar: {
     flexDirection: 'row',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
     backgroundColor: '#262626',
     borderBottomWidth: 1,
     borderBottomColor: '#374151',
+    alignItems: 'center',
   },
   toolbarButton: {
-    flex: 1,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#374151',
+    padding: 8,
     borderRadius: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
-    minHeight: 32,
+  },
+  spacer: {
+    flex: 1,
+  },
+  modeButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  modeButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 6,
+    backgroundColor: '#374151',
+  },
+  modeButtonActive: {
+    backgroundColor: '#3B82F6',
   },
   editor: {
     flex: 1,
@@ -204,11 +270,15 @@ export default function MarkdownEditor({
   content,
   onContentChange,
   onToggleTask,
+  mode,
+  onModeChange,
 }: MarkdownEditorProps) {
   const textInputRef = useRef<TextInput>(null);
   const popoverRef = useRef<View>(null);
   const cursorPositionRef = useRef<number>(0);
+  const pendingSelectionRef = useRef<{ start: number; end: number } | null>(null);
   const [cursorPosition, setCursorPosition] = useState<number>(0);
+  const [selection, setSelection] = useState<{ start: number; end: number } | undefined>(undefined);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showDateModal, setShowDateModal] = useState(false);
   const [dateOptions] = useState<DateOption[]>(getDateOptions());
@@ -216,6 +286,24 @@ export default function MarkdownEditor({
   const [showRecurrenceModal, setShowRecurrenceModal] = useState(false);
   const [recurrenceInterval, setRecurrenceInterval] = useState('1');
   const [recurrenceUnit, setRecurrenceUnit] = useState<'day' | 'week' | 'month'>('day');
+
+  // Handle selection updates after content changes
+  useEffect(() => {
+    if (pendingSelectionRef.current) {
+      const sel = pendingSelectionRef.current;
+      pendingSelectionRef.current = null;
+
+      // Apply selection after content has rendered
+      setSelection(sel);
+      setCursorPosition(sel.start);
+      cursorPositionRef.current = sel.start;
+
+      // Focus the input (critical for iOS)
+      requestAnimationFrame(() => {
+        textInputRef.current?.focus();
+      });
+    }
+  }, [content]);
 
   const handleDateCancel = useCallback(() => {
     setShowDateModal(false);
@@ -292,20 +380,26 @@ export default function MarkdownEditor({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showDateModal, selectedOptionIndex, dateOptions, handleDateOptionSelect, handleDateCancel]);
 
-  const handleBoldClick = () => {
-    const newContent = `${content}**bold**`;
-    onContentChange(newContent);
+  const handleNewTaskClick = () => {
+    const newTask = '- [ ] New task';
+    let newContent: string;
+    let newCursorPos: number;
+
+    if (content.trim()) {
+      newContent = content + '\n' + newTask;
+      newCursorPos = newContent.length; // Position after "New task"
+    } else {
+      newContent = newTask;
+      newCursorPos = newTask.length; // Position after "New task"
+    }
+
+    // Set pending selection to apply after content updates
+    pendingSelectionRef.current = { start: newCursorPos, end: newCursorPos };
+
+    // Update content (useEffect will handle selection and focus)
+    onToggleTask(newContent);
   };
 
-  const handleItalicClick = () => {
-    const newContent = `${content}*italic*`;
-    onContentChange(newContent);
-  };
-
-  const handleLinkClick = () => {
-    const newContent = `${content}[link](url)`;
-    onContentChange(newContent);
-  };
 
   const handleDatePickerOpen = () => {
     // Store the current cursor position in ref before opening modal
@@ -461,36 +555,28 @@ export default function MarkdownEditor({
   // Both web and mobile use simple TextInput
   return (
     <View style={styles.container}>
-      <View style={styles.toolbar}>
-        <Pressable style={styles.toolbarButton} onPress={onToggleTask}>
-          <CheckSquare size={16} color="#9ca3af" strokeWidth={2} />
-        </Pressable>
-        <Pressable style={styles.toolbarButton} onPress={handleDatePickerOpen}>
-          <Calendar size={16} color="#9ca3af" strokeWidth={2} />
-        </Pressable>
-        <Pressable style={styles.toolbarButton} onPress={handleRecurrenceOpen}>
-          <Repeat size={16} color="#9ca3af" strokeWidth={2} />
-        </Pressable>
-        <Pressable style={styles.toolbarButton} onPress={handleBoldClick}>
-          <Bold size={16} color="#9ca3af" strokeWidth={2} />
-        </Pressable>
-        <Pressable style={styles.toolbarButton} onPress={handleItalicClick}>
-          <Italic size={16} color="#9ca3af" strokeWidth={2} />
-        </Pressable>
-        <Pressable style={styles.toolbarButton} onPress={handleLinkClick}>
-          <LinkIcon size={16} color="#9ca3af" strokeWidth={2} />
-        </Pressable>
-      </View>
+      <Toolbar
+        mode={mode}
+        onModeChange={onModeChange}
+        onNewTask={handleNewTaskClick}
+        onDatePicker={handleDatePickerOpen}
+        onRecurrence={handleRecurrenceOpen}
+      />
 
       <TextInput
         ref={textInputRef}
         style={styles.editor}
         value={content}
+        selection={selection}
         onChangeText={handleContentChangeWithTrigger}
         onSelectionChange={(event) => {
           const pos = event.nativeEvent.selection.start;
           setCursorPosition(pos);
           cursorPositionRef.current = pos;
+          // Clear controlled selection after user moves cursor
+          if (selection) {
+            setSelection(undefined);
+          }
         }}
         onKeyPress={handleKeyPress}
         placeholder="Start typing your tasks here..."

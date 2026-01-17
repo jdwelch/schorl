@@ -80,31 +80,6 @@ export function toggleTaskLine(line: string): string {
   return `${indent}- [${newCheckbox}] ${newDescription}`;
 }
 
-export function insertTaskCheckbox(line: string): string {
-  // If line already has a task checkbox, don't modify it
-  if (TASK_LINE_REGEX.test(line)) {
-    return line;
-  }
-
-  // Find indentation
-  const indentMatch = line.match(/^(\s*)/);
-  const indent = indentMatch ? indentMatch[1] : '';
-  const trimmedLine = line.trim();
-
-  // If line is empty or just whitespace, create a task
-  if (!trimmedLine) {
-    return `${indent}- [ ] `;
-  }
-
-  // If line starts with list marker, convert to task
-  if (/^[-*+]\s+/.test(trimmedLine)) {
-    return `${indent}- [ ] ${trimmedLine.replace(/^[-*+]\s+/, '')}`;
-  }
-
-  // Otherwise, create a new task with the content
-  return `${indent}- [ ] ${trimmedLine}`;
-}
-
 export function insertDueDate(line: string, date: string): string {
   // Remove existing due date if present
   let cleanedLine = line.replace(/\s*📅\s*\d{4}-\d{2}-\d{2}/, '');
@@ -113,32 +88,12 @@ export function insertDueDate(line: string, date: string): string {
   return `${cleanedLine} 📅 ${date}`.trim();
 }
 
-export function insertScheduledDate(line: string, date: string): string {
-  // Remove existing scheduled date if present
-  let cleanedLine = line.replace(/\s*⏳\s*\d{4}-\d{2}-\d{2}/, '');
-
-  // Append new scheduled date
-  return `${cleanedLine} ⏳ ${date}`.trim();
-}
-
 export function insertRecurrence(line: string, recurrence: string): string {
   // Remove existing recurrence if present
   let cleanedLine = line.replace(/\s*🔁\s*.+?(?=\s*[📅⏳✅]|$)/, '');
 
   // Append new recurrence
   return `${cleanedLine} 🔁 ${recurrence}`.trim();
-}
-
-export function insertDoneDate(line: string, date: string): string {
-  // Remove existing done date if present
-  let cleanedLine = line.replace(/\s*✅\s*\d{4}-\d{2}-\d{2}/, '');
-
-  // Append new done date
-  return `${cleanedLine} ✅ ${date}`.trim();
-}
-
-export function removeDoneDate(line: string): string {
-  return line.replace(/\s*✅\s*\d{4}-\d{2}-\d{2}/, '').trim();
 }
 
 export function createRecurringTask(line: string): string | null {

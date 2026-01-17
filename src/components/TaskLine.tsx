@@ -23,6 +23,10 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    gap: 6,
   },
   taskText: {
     fontSize: 14,
@@ -38,12 +42,6 @@ const styles = StyleSheet.create({
   taskTextChecked: {
     color: '#6b7280',
     textDecorationLine: 'line-through',
-  },
-  metadata: {
-    marginTop: 4,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
   },
   badge: {
     paddingHorizontal: 8,
@@ -145,59 +143,54 @@ export default function TaskLine({ line, lineIndex, metadata, onToggle }: TaskLi
             styles.taskText,
             metadata.isChecked && styles.taskTextChecked,
           ]}
-          numberOfLines={2}
         >
           {displayText}
         </Text>
 
-        {(metadata.priority || metadata.dueDate || metadata.scheduledDate || metadata.recurrence || metadata.createdDate || metadata.doneDate) && (
-          <View style={styles.metadata}>
-            {metadata.priority && (
-              <View
-                style={[
-                  styles.badge,
-                  styles.priorityBadge,
-                  metadata.priority === 'highest' && styles.priorityHighest,
-                  metadata.priority === 'high' && styles.priorityHigh,
-                  metadata.priority === 'low' && styles.priorityLow,
-                  metadata.priority === 'lowest' && styles.priorityLowest,
-                ]}
-              >
-                <Text style={styles.badgeText}>{priorityEmoji[metadata.priority]}</Text>
-              </View>
-            )}
-            {metadata.dueDate && (
-              <View style={[styles.badge, dueDateStatus === 'overdue' && styles.overdueBadge]}>
-                <Text
-                  style={[
-                    styles.badgeText,
-                    dueDateStatus === 'overdue' && styles.overdueBadgeText,
-                  ]}
-                >
-                  📅 {metadata.dueDate}
-                </Text>
-              </View>
-            )}
-            {metadata.scheduledDate && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>⏳ {metadata.scheduledDate}</Text>
-              </View>
-            )}
-            {metadata.recurrence && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>🔁 {metadata.recurrence}</Text>
-              </View>
-            )}
-            {metadata.createdDate && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>➕ {metadata.createdDate}</Text>
-              </View>
-            )}
-            {metadata.doneDate && (
-              <View style={styles.badge}>
-                <Text style={styles.badgeText}>✅ {metadata.doneDate}</Text>
-              </View>
-            )}
+        {metadata.priority && (
+          <View
+            style={[
+              styles.badge,
+              styles.priorityBadge,
+              metadata.priority === 'highest' && styles.priorityHighest,
+              metadata.priority === 'high' && styles.priorityHigh,
+              metadata.priority === 'low' && styles.priorityLow,
+              metadata.priority === 'lowest' && styles.priorityLowest,
+            ]}
+          >
+            <Text style={styles.badgeText}>{priorityEmoji[metadata.priority]}</Text>
+          </View>
+        )}
+        {metadata.dueDate && (
+          <View style={[styles.badge, dueDateStatus === 'overdue' && styles.overdueBadge]}>
+            <Text
+              style={[
+                styles.badgeText,
+                dueDateStatus === 'overdue' && styles.overdueBadgeText,
+              ]}
+            >
+              📅 {metadata.dueDate}
+            </Text>
+          </View>
+        )}
+        {metadata.scheduledDate && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>⏳ {metadata.scheduledDate}</Text>
+          </View>
+        )}
+        {metadata.recurrence && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>🔁 {metadata.recurrence}</Text>
+          </View>
+        )}
+        {metadata.createdDate && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>➕ {metadata.createdDate}</Text>
+          </View>
+        )}
+        {metadata.doneDate && (
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>✅ {metadata.doneDate}</Text>
           </View>
         )}
       </View>
