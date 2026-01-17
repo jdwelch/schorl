@@ -3,6 +3,9 @@
 # dependencies
 node_modules/
 
+# Other tools
+supabase/
+
 # Expo
 .expo/
 dist/
@@ -42,3 +45,4 @@ app-example
 # generated native folders
 /ios
 /android
+

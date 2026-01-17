@@ -28,4 +28,5 @@ export const localStorageAPI: StorageAPI = {
   },
 };
 
-export const storage = localStorageAPI;
+// Use Supabase storage by default (falls back to local if not authenticated)
+export { supabaseStorageAPI as storage } from './supabaseStorage';

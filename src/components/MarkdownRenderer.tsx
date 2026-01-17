@@ -9,6 +9,7 @@ interface MarkdownRendererProps {
   onTaskToggle: (lineIndex: number, newLine: string) => void;
   mode: 'edit' | 'read';
   onModeChange: (mode: 'edit' | 'read') => void;
+  syncStatusComponent?: React.ReactNode;
 }
 
 const styles = StyleSheet.create({
@@ -194,11 +195,11 @@ const markdownStyles = {
   },
 };
 
-export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeChange }: MarkdownRendererProps) {
+export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeChange, syncStatusComponent }: MarkdownRendererProps) {
   if (!content.trim()) {
     return (
       <View style={styles.container}>
-        <Toolbar mode={mode} onModeChange={onModeChange} />
+        <Toolbar mode={mode} onModeChange={onModeChange} syncStatusComponent={syncStatusComponent} />
         <Text style={styles.emptyText}>No content to display</Text>
       </View>
     );
@@ -251,7 +252,7 @@ export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeCh
 
   return (
     <View style={styles.container}>
-      <Toolbar mode={mode} onModeChange={onModeChange} />
+      <Toolbar mode={mode} onModeChange={onModeChange} syncStatusComponent={syncStatusComponent} />
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
         {/* Render markdown content first */}
         {regularContent.trim() && (

@@ -3,9 +3,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useEffect, useState } from 'react';
 
 import { storage } from '@/src/utils/storage';
+import { syncLocalToRemote, getSyncStatus } from '@/src/utils/supabaseStorage';
 import { parseTaskLine, createRecurringTask } from '@/src/utils/taskParser';
+import { useAuth } from '@/src/contexts/AuthContext';
 import MarkdownEditor from '@/src/components/MarkdownEditor';
 import MarkdownRenderer from '@/src/components/MarkdownRenderer';
+import AuthPrompt from '@/src/components/AuthPrompt';
+import SyncStatus, { SyncState } from '@/src/components/SyncStatus';
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -30,33 +34,116 @@ const styles = StyleSheet.create({
 type Mode = 'edit' | 'read';
 
 export default function TasksScreen() {
+  const { session, signInWithEmail } = useAuth();
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<Mode>('read');
   const [content, setContent] = useState('');
   const [lastCursorPosition, setLastCursorPosition] = useState<number>(0);
+  const [showAuthPrompt, setShowAuthPrompt] = useState(false);
+  const [syncState, setSyncState] = useState<SyncState>('offline');
+  const [lastSync, setLastSync] = useState<Date | null>(null);
 
   useEffect(() => {
     loadContent();
   }, []);
 
+  // Periodically check for remote updates when authenticated
+  useEffect(() => {
+    if (!session) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const savedContent = await storage.getContent();
+        if (savedContent !== content) {
+          setContent(savedContent);
+        }
+      } catch (error) {
+        console.error('Error checking for updates:', error);
+      }
+    }, 5000); // Check every 5 seconds
+
+    return () => clearInterval(interval);
+  }, [session, content]);
+
+  // Show auth prompt after a delay if not authenticated
+  useEffect(() => {
+    if (!loading && !session) {
+      const timer = setTimeout(() => {
+        setShowAuthPrompt(true);
+      }, 2000); // Show after 2 seconds
+      return () => clearTimeout(timer);
+    } else {
+      setShowAuthPrompt(false);
+    }
+  }, [loading, session]);
+
+  // Update sync status when session changes
+  useEffect(() => {
+    updateSyncStatus();
+  }, [session]);
+
+  // Sync local content to remote after first sign-in
+  useEffect(() => {
+    if (session && content) {
+      syncLocalContentToRemote();
+    }
+  }, [session]);
+
   const loadContent = async () => {
     try {
+      setSyncState('syncing');
       const savedContent = await storage.getContent();
       setContent(savedContent);
+      await updateSyncStatus();
     } catch (error) {
       console.error('Failed to load content:', error);
+      setSyncState('error');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateSyncStatus = async () => {
+    try {
+      const status = await getSyncStatus();
+      setLastSync(status.lastSync);
+
+      if (session) {
+        setSyncState(status.hasRemote ? 'synced' : 'offline');
+      } else {
+        setSyncState('offline');
+      }
+    } catch (error) {
+      console.error('Failed to get sync status:', error);
+      setSyncState('error');
+    }
+  };
+
+  const syncLocalContentToRemote = async () => {
+    try {
+      setSyncState('syncing');
+      await syncLocalToRemote();
+      await updateSyncStatus();
+    } catch (error) {
+      console.error('Failed to sync local content:', error);
+      setSyncState('error');
     }
   };
 
   const handleContentChange = async (newContent: string) => {
     setContent(newContent);
     try {
+      setSyncState('syncing');
       await storage.saveContent(newContent);
+      await updateSyncStatus();
     } catch (error) {
       console.error('Failed to save content:', error);
+      setSyncState('error');
     }
+  };
+
+  const handleSignIn = async (email: string) => {
+    await signInWithEmail(email);
   };
 
   const handleModeChange = (newMode: Mode) => {
@@ -108,6 +195,9 @@ export default function TasksScreen() {
               onModeChange={handleModeChange}
               initialCursorPosition={lastCursorPosition}
               onCursorPositionChange={setLastCursorPosition}
+              syncStatusComponent={
+                !loading && <SyncStatus state={syncState} lastSync={lastSync} />
+              }
             />
           )}
           {mode === 'read' && (
@@ -115,6 +205,9 @@ export default function TasksScreen() {
               content={content}
               mode={mode}
               onModeChange={handleModeChange}
+              syncStatusComponent={
+                !loading && <SyncStatus state={syncState} lastSync={lastSync} />
+              }
               onTaskToggle={(lineIndex, newLine) => {
                 const lines = content.split('\n');
                 const oldLine = lines[lineIndex];
@@ -137,6 +230,14 @@ export default function TasksScreen() {
             />
           )}
         </View>
+
+        {/* Auth prompt - shown at bottom when not signed in */}
+        {showAuthPrompt && !session && (
+          <AuthPrompt
+            onSignIn={handleSignIn}
+            onDismiss={() => setShowAuthPrompt(false)}
+          />
+        )}
       </View>
     </SafeAreaView>
   );

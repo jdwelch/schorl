@@ -41,11 +41,13 @@ interface ToolbarProps {
   onNewTask?: () => void;
   onDatePicker?: () => void;
   onRecurrence?: () => void;
+  syncStatusComponent?: React.ReactNode;
 }
 
-export function Toolbar({ mode, onModeChange, onNewTask, onDatePicker, onRecurrence }: ToolbarProps) {
+export function Toolbar({ mode, onModeChange, onNewTask, onDatePicker, onRecurrence, syncStatusComponent }: ToolbarProps) {
   return (
     <View style={styles.toolbar}>
+      {/* Left side: action buttons (edit mode only) */}
       {mode === 'edit' && (
         <>
           <Pressable style={styles.toolbarButton} onPress={onNewTask}>
@@ -60,7 +62,11 @@ export function Toolbar({ mode, onModeChange, onNewTask, onDatePicker, onRecurre
         </>
       )}
 
+      {/* Flexible spacer */}
       <View style={styles.spacer} />
+
+      {/* Right side: sync status + mode toggles */}
+      {syncStatusComponent}
 
       <View style={styles.modeButtons}>
         <Pressable
@@ -96,6 +102,7 @@ interface MarkdownEditorProps {
   onModeChange: (mode: 'edit' | 'read') => void;
   initialCursorPosition?: number;
   onCursorPositionChange?: (position: number) => void;
+  syncStatusComponent?: React.ReactNode;
 }
 
 const styles = StyleSheet.create({
@@ -279,6 +286,7 @@ export default function MarkdownEditor({
   onModeChange,
   initialCursorPosition,
   onCursorPositionChange,
+  syncStatusComponent,
 }: MarkdownEditorProps) {
   const textInputRef = useRef<TextInput>(null);
   const popoverRef = useRef<View>(null);
@@ -594,6 +602,7 @@ export default function MarkdownEditor({
         onNewTask={handleNewTaskClick}
         onDatePicker={handleDatePickerOpen}
         onRecurrence={handleRecurrenceOpen}
+        syncStatusComponent={syncStatusComponent}
       />
 
       <TextInput
