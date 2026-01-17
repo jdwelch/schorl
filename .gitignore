@@ -3,8 +3,8 @@
 # dependencies
 node_modules/
 
-# Other tools
-supabase/
+# Supabase
+supabase/.temp/
 
 # Expo
 .expo/
