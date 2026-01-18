@@ -1,6 +1,6 @@
 # Supabase Setup
 
-This directory contains database migrations and setup scripts for md-tasks.
+This directory contains database migrations and setup scripts for Schorl.
 
 ## Initial Setup
 

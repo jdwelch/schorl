@@ -59,7 +59,7 @@ Supported metadata:
 
 **`src/utils/storage.ts`** - Storage abstraction layer:
 - **Current Implementation**: AsyncStorage for device-local persistence only
-- **Storage Key**: `@md-tasks:content` - stores entire document as single string
+- **Storage Key**: `@schorl:content` - stores entire document as single string
 - **Interface**: `StorageAPI` with `getContent()` and `saveContent()` methods
 - **Design**: Clean abstraction ready for backend swap - storage implementation can be changed by swapping `localStorageAPI`
 - **Data Model**: Plain markdown text with no task IDs, versioning, or metadata beyond inline syntax

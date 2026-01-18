@@ -1,7 +1,7 @@
 #!/usr/bin/env tsx
 
 /**
- * Database setup helper for md-tasks
+ * Database setup helper for Schorl
  *
  * This script helps you set up your Supabase database by providing
  * clear instructions and the SQL to run.
@@ -20,7 +20,7 @@ config();
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 
 console.log('='.repeat(70));
-console.log('  md-tasks Database Setup');
+console.log('  Schorl Database Setup');
 console.log('='.repeat(70));
 console.log();
 

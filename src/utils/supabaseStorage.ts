@@ -2,9 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/src/lib/supabase';
 import { StorageAPI } from './storage';
 
-const STORAGE_KEY = '@md-tasks:content';
-const VERSION_KEY = '@md-tasks:version';
-const LAST_SYNC_KEY = '@md-tasks:last-sync';
+const STORAGE_KEY = '@schorl:content';
+const VERSION_KEY = '@schorl:version';
+const LAST_SYNC_KEY = '@schorl:last-sync';
 
 interface DocumentRow {
   user_id: string;
