@@ -1,0 +1,10 @@
+/* Ensure dark background for iOS PWA status bar area */
+html, body {
+  background-color: #1a1a1a !important;
+  margin: 0;
+  padding: 0;
+}
+
+#root {
+  background-color: #1a1a1a;
+}

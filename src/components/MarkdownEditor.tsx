@@ -47,7 +47,19 @@ interface ToolbarProps {
 export function Toolbar({ mode, onModeChange, onNewTask, onDatePicker, onRecurrence, syncStatusComponent }: ToolbarProps) {
   return (
     <View style={styles.toolbar}>
-      {/* Left side: action buttons (edit mode only) */}
+      {/* Left side: mode toggle */}
+      <Pressable
+        onPress={() => onModeChange(mode === 'edit' ? 'read' : 'edit')}
+        style={styles.modeButton}
+      >
+        {mode === 'edit' ? (
+          <Eye size={16} color="#9ca3af" strokeWidth={2} />
+        ) : (
+          <Edit2 size={16} color="#9ca3af" strokeWidth={2} />
+        )}
+      </Pressable>
+
+      {/* Action buttons (edit mode only) */}
       {mode === 'edit' && (
         <>
           <Pressable style={styles.toolbarButton} onPress={onNewTask}>
@@ -65,31 +77,8 @@ export function Toolbar({ mode, onModeChange, onNewTask, onDatePicker, onRecurre
       {/* Flexible spacer */}
       <View style={styles.spacer} />
 
-      {/* Right side: sync status + mode toggles */}
+      {/* Right side: sync status */}
       {syncStatusComponent}
-
-      <View style={styles.modeButtons}>
-        <Pressable
-          onPress={() => onModeChange('edit')}
-          style={[styles.modeButton, mode === 'edit' && styles.modeButtonActive]}
-        >
-          <Edit2
-            size={16}
-            color={mode === 'edit' ? '#fff' : '#9ca3af'}
-            strokeWidth={2}
-          />
-        </Pressable>
-        <Pressable
-          onPress={() => onModeChange('read')}
-          style={[styles.modeButton, mode === 'read' && styles.modeButtonActive]}
-        >
-          <Eye
-            size={16}
-            color={mode === 'read' ? '#fff' : '#9ca3af'}
-            strokeWidth={2}
-          />
-        </Pressable>
-      </View>
     </View>
   );
 }
@@ -127,18 +116,11 @@ const styles = StyleSheet.create({
   spacer: {
     flex: 1,
   },
-  modeButtons: {
-    flexDirection: 'row',
-    gap: 8,
-  },
   modeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 6,
-    backgroundColor: '#374151',
-  },
-  modeButtonActive: {
-    backgroundColor: '#3B82F6',
+    padding: 8,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#374151',
   },
   editor: {
     flex: 1,

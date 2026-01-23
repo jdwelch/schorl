@@ -40,7 +40,7 @@ export default function SyncStatus({ state, lastSync }: SyncStatusProps) {
       case 'syncing':
         return 'Syncing...';
       case 'offline':
-        return 'Offline';
+        return 'Working offline';
       case 'error':
         return 'Sync error';
     }

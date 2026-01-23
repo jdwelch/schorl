@@ -66,10 +66,10 @@ const styles = StyleSheet.create({
     color: '#fcd34d',
   },
   overdueBadge: {
-    backgroundColor: '#7f1d1d',
+    backgroundColor: 'rgba(88, 28, 135, 0.3)',
   },
   overdueBadgeText: {
-    color: '#fca5a5',
+    color: '#d8b4fe',
   },
   priorityBadge: {
     backgroundColor: '#374151',

@@ -1,4 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Platform, RefreshControl } from 'react-native';
+import { useState } from 'react';
 import MarkdownDisplay from 'react-native-markdown-display';
 import { parseTaskLine } from '@/src/utils/taskParser';
 import TaskLine from '@/src/components/TaskLine';
@@ -10,6 +11,7 @@ interface MarkdownRendererProps {
   mode: 'edit' | 'read';
   onModeChange: (mode: 'edit' | 'read') => void;
   syncStatusComponent?: React.ReactNode;
+  onRefresh?: () => Promise<void>;
 }
 
 const styles = StyleSheet.create({
@@ -195,7 +197,26 @@ const markdownStyles = {
   },
 };
 
-export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeChange, syncStatusComponent }: MarkdownRendererProps) {
+interface ContentBlock {
+  type: 'markdown' | 'tasks';
+  content: string; // for markdown blocks
+  tasks?: Array<{ line: string; metadata: any; lineIndex: number }>; // for task blocks
+}
+
+export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeChange, syncStatusComponent, onRefresh }: MarkdownRendererProps) {
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (!onRefresh) return;
+
+    setRefreshing(true);
+    try {
+      await onRefresh();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   if (!content.trim()) {
     return (
       <View style={styles.container}>
@@ -206,74 +227,92 @@ export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeCh
   }
 
   const lines = content.split('\n');
-  const taskLineIndices = new Set<number>();
-
-  // Find which lines are tasks
-  lines.forEach((line, index) => {
-    const taskMetadata = parseTaskLine(line);
-    if (taskMetadata.isTask) {
-      taskLineIndices.add(index);
-    }
-  });
-
-  // Separate task lines from regular markdown
-  let regularContent = '';
-  const tasksByIndex: Record<number, { line: string; metadata: any }> = {};
+  const blocks: ContentBlock[] = [];
+  let currentBlock: ContentBlock | null = null;
 
   lines.forEach((line, index) => {
-    // Check if line is an empty task (e.g., "- [ ]" with no description)
+    // Check if empty task (e.g., "- [ ]" with no description)
     const emptyTaskRegex = /^\s*[-*+]\s+\[([ xX])\]\s*$/;
     const isEmptyTask = emptyTaskRegex.test(line);
 
     if (isEmptyTask) {
-      // Skip empty tasks entirely - don't render them
-      return;
+      return; // Skip empty tasks
     }
 
-    if (taskLineIndices.has(index)) {
-      const taskMetadata = parseTaskLine(line);
+    const taskMetadata = parseTaskLine(line);
+    const isTask = taskMetadata.isTask;
 
-      // Extract display text (same logic as TaskLine component)
+    if (isTask) {
+      // Extract display text to check if task has meaningful content
       const descriptionMatch = taskMetadata.description.match(
         /^(.+?)(?:\s*📅|\s*⏳|\s*🔁|\s*✅|\s*➕|\s*⏫|\s*🔼|\s*🔽|\s*⏬|$)/
       );
       const displayText = descriptionMatch ? descriptionMatch[1].trim() : taskMetadata.description.trim();
 
-      // Skip empty tasks (tasks with no meaningful description after metadata removal)
-      // Check both the displayText and the raw description
-      if (displayText && displayText.length > 0) {
-        tasksByIndex[index] = { line, metadata: taskMetadata };
+      if (!displayText || displayText.length === 0) {
+        return; // Skip tasks with no meaningful description
       }
-      // Note: we don't add empty tasks to regularContent either, just skip them entirely
+
+      // Start a new task block if needed
+      if (!currentBlock || currentBlock.type !== 'tasks') {
+        if (currentBlock) blocks.push(currentBlock);
+        currentBlock = { type: 'tasks', content: '', tasks: [] };
+      }
+      currentBlock.tasks!.push({ line, metadata: taskMetadata, lineIndex: index });
     } else {
-      regularContent += line + '\n';
+      // Start a new markdown block if needed
+      if (!currentBlock || currentBlock.type !== 'markdown') {
+        if (currentBlock) blocks.push(currentBlock);
+        currentBlock = { type: 'markdown', content: '' };
+      }
+      currentBlock.content += line + '\n';
     }
   });
+
+  // Push the last block
+  if (currentBlock) blocks.push(currentBlock);
 
   return (
     <View style={styles.container}>
       <Toolbar mode={mode} onModeChange={onModeChange} syncStatusComponent={syncStatusComponent} />
-      <ScrollView style={styles.scrollView} contentContainerStyle={styles.contentContainer}>
-        {/* Render markdown content first */}
-        {regularContent.trim() && (
-          <View style={{ marginBottom: 16 }}>
-            <MarkdownDisplay style={markdownStyles}>{regularContent}</MarkdownDisplay>
-          </View>
-        )}
-
-        {/* Render task lines */}
-        {Object.entries(tasksByIndex).map(([indexStr, { line, metadata }]) => {
-          const index = parseInt(indexStr, 10);
-          return (
-            <View key={`task-${index}`} style={styles.taskContainer}>
-              <TaskLine
-                line={line}
-                lineIndex={index}
-                onToggle={onTaskToggle}
-                metadata={metadata}
-              />
-            </View>
-          );
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.contentContainer}
+        refreshControl={
+          onRefresh ? (
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={handleRefresh}
+              tintColor="#3B82F6"
+              colors={['#3B82F6']}
+            />
+          ) : undefined
+        }
+      >
+        {blocks.map((block, blockIndex) => {
+          if (block.type === 'markdown') {
+            return block.content.trim() ? (
+              <View key={`markdown-${blockIndex}`} style={{ marginBottom: 16 }}>
+                <MarkdownDisplay style={markdownStyles}>{block.content}</MarkdownDisplay>
+              </View>
+            ) : null;
+          } else {
+            // Task block
+            return (
+              <View key={`tasks-${blockIndex}`}>
+                {block.tasks!.map(({ line, metadata, lineIndex }) => (
+                  <View key={`task-${lineIndex}`} style={styles.taskContainer}>
+                    <TaskLine
+                      line={line}
+                      lineIndex={lineIndex}
+                      onToggle={onTaskToggle}
+                      metadata={metadata}
+                    />
+                  </View>
+                ))}
+              </View>
+            );
+          }
         })}
       </ScrollView>
     </View>

@@ -77,17 +77,33 @@ export default function TasksScreen() {
     }
   }, [loading, session]);
 
-  // Update sync status when session changes
+  // Reload content and sync when session becomes available
   useEffect(() => {
-    updateSyncStatus();
-  }, [session]);
+    if (!loading && session) {
+      // Session just became available - reload to sync with remote
+      const syncWithRemote = async () => {
+        try {
+          setSyncState('syncing');
+          const savedContent = await storage.getContent();
+          setContent(savedContent);
 
-  // Sync local content to remote after first sign-in
-  useEffect(() => {
-    if (session && content) {
-      syncLocalContentToRemote();
+          // If we have local content but no remote, push to remote
+          if (savedContent) {
+            await syncLocalToRemote();
+          }
+
+          await updateSyncStatus();
+        } catch (error) {
+          console.error('Failed to sync with remote:', error);
+          setSyncState('error');
+        }
+      };
+
+      syncWithRemote();
+    } else if (!loading && !session) {
+      updateSyncStatus();
     }
-  }, [session]);
+  }, [session, loading]);
 
   const loadContent = async () => {
     try {
@@ -103,13 +119,26 @@ export default function TasksScreen() {
     }
   };
 
+  const handleRefresh = async () => {
+    try {
+      setSyncState('syncing');
+      const savedContent = await storage.getContent();
+      setContent(savedContent);
+      await updateSyncStatus();
+    } catch (error) {
+      console.error('Failed to refresh content:', error);
+      setSyncState('error');
+    }
+  };
+
   const updateSyncStatus = async () => {
     try {
       const status = await getSyncStatus();
       setLastSync(status.lastSync);
 
       if (session) {
-        setSyncState(status.hasRemote ? 'synced' : 'offline');
+        // If authenticated, we're ready to sync (even if no remote document yet)
+        setSyncState('synced');
       } else {
         setSyncState('offline');
       }
@@ -208,6 +237,7 @@ export default function TasksScreen() {
               syncStatusComponent={
                 !loading && <SyncStatus state={syncState} lastSync={lastSync} />
               }
+              onRefresh={handleRefresh}
               onTaskToggle={(lineIndex, newLine) => {
                 const lines = content.split('\n');
                 const oldLine = lines[lineIndex];
