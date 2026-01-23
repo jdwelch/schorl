@@ -83,32 +83,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [mounted]);
 
   const signInWithEmail = async (email: string) => {
-    // Detect if running in Expo Go
-    const isExpoGo = Platform.OS !== 'web' &&
-                     typeof __DEV__ !== 'undefined' &&
-                     __DEV__ &&
-                     !require('expo-constants').default.appOwnership;
-
-    let redirectUrl: string;
-
-    if (Platform.OS === 'web') {
-      redirectUrl = typeof window !== 'undefined'
-        ? `${window.location.origin}/auth/callback`
-        : 'http://localhost:8081/auth/callback';
-    } else if (isExpoGo) {
-      // For Expo Go, we need to use the exp:// scheme
-      // User will need to manually paste the link or use web for now
-      redirectUrl = 'mdtasks://auth/callback'; // Fallback
-      console.warn('⚠️ Magic links may not work in Expo Go. Please test on web or use a development build.');
-    } else {
-      // Production or development build
-      redirectUrl = 'mdtasks://auth/callback';
-    }
-
+    // Use OTP-only (no magic link redirect)
+    // Works everywhere including iOS PWAs with isolated storage
     const { error } = await supabase.auth.signInWithOtp({
       email,
       options: {
-        emailRedirectTo: redirectUrl,
+        shouldCreateUser: true, // Auto-create account if doesn't exist
       },
     });
 

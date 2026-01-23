@@ -1,5 +1,5 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Mail, X, AlertCircle } from 'lucide-react-native';
 import Constants from 'expo-constants';
 import DevAuthBypass from './DevAuthBypass';
@@ -13,10 +13,14 @@ interface AuthPromptProps {
 export default function AuthPrompt({ onSignIn, onDismiss }: AuthPromptProps) {
   const { setSessionFromToken } = useAuth();
   const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [status, setStatus] = useState<'idle' | 'sent' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
   const [isExpoGo, setIsExpoGo] = useState(false);
+  const [sentEmail, setSentEmail] = useState('');
+  const otpInputRef = useRef<TextInput>(null);
 
   useEffect(() => {
     // Check if running in Expo Go
@@ -26,6 +30,21 @@ export default function AuthPrompt({ onSignIn, onDismiss }: AuthPromptProps) {
                    !Constants.appOwnership;
     setIsExpoGo(expoGo);
   }, []);
+
+  // Auto-focus OTP input when switching to sent state
+  useEffect(() => {
+    if (status === 'sent' && otpInputRef.current) {
+      // Small delay to ensure render is complete
+      setTimeout(() => {
+        otpInputRef.current?.focus();
+      }, 100);
+    }
+  }, [status]);
+
+  // Simple email validation
+  const isValidEmail = (email: string) => {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
+  };
 
   const handleBypass = async (token: string) => {
     try {
@@ -47,12 +66,65 @@ export default function AuthPrompt({ onSignIn, onDismiss }: AuthPromptProps) {
     try {
       await onSignIn(email.trim());
       setStatus('sent');
+      setSentEmail(email.trim());
       setEmail('');
     } catch (error) {
       setStatus('error');
       setErrorMessage(error instanceof Error ? error.message : 'Failed to send magic link');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleVerifyOtp = async () => {
+    if (!otp.trim() || otp.trim().length !== 6) {
+      setErrorMessage('Please enter the 6-digit code');
+      return;
+    }
+
+    setVerifying(true);
+    setErrorMessage('');
+
+    try {
+      const { supabase } = await import('@/src/lib/supabase');
+
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: sentEmail,
+        token: otp.trim(),
+        type: 'email',
+      });
+
+      if (error) throw error;
+
+      if (data.session) {
+        // Success! Session is automatically set by Supabase
+        onDismiss();
+      } else {
+        throw new Error('Authentication succeeded but no session created');
+      }
+    } catch (error) {
+      console.error('Verify OTP failed:', error);
+      // Keep status as 'sent' so form stays visible
+      setErrorMessage(error instanceof Error ? error.message : 'Invalid code. Please try again.');
+      // Clear OTP field to make it easier to retry
+      setOtp('');
+    } finally {
+      setVerifying(false);
+    }
+  };
+
+  const handleOtpChange = (text: string) => {
+    const digits = text.replace(/[^0-9]/g, '').slice(0, 6);
+    setOtp(digits);
+
+    // Auto-submit when 6 digits entered
+    if (digits.length === 6 && !verifying) {
+      // Small delay to let the user see the complete code
+      setTimeout(() => {
+        if (!verifying) {
+          handleVerifyOtp();
+        }
+      }, 300);
     }
   };
 
@@ -72,21 +144,52 @@ export default function AuthPrompt({ onSignIn, onDismiss }: AuthPromptProps) {
           </TouchableOpacity>
         </View>
 
-        {isExpoGo && Platform.OS !== 'web' && (
-          <View style={styles.warningBox}>
-            <AlertCircle size={16} color="#f59e0b" />
-            <Text style={styles.warningText}>
-              Magic links don't work in Expo Go. Test on web instead, or create a development build.
-            </Text>
-          </View>
-        )}
 
         {status === 'sent' ? (
-          <Text style={styles.successText}>
-            {isExpoGo && Platform.OS !== 'web'
-              ? 'Email sent, but deep links won\'t work in Expo Go. Try on web!'
-              : 'Check your email for the magic link!'}
-          </Text>
+          <View>
+            <Text style={styles.successText}>
+              Check your email for a 6-digit code
+            </Text>
+            <View style={styles.otpForm}>
+              <TextInput
+                ref={otpInputRef}
+                style={styles.otpInput}
+                placeholder="000000"
+                placeholderTextColor="#6b7280"
+                value={otp}
+                onChangeText={handleOtpChange}
+                keyboardType="number-pad"
+                autoCapitalize="none"
+                autoCorrect={false}
+                autoFocus={true}
+                maxLength={6}
+                editable={!verifying}
+                onSubmitEditing={handleVerifyOtp}
+                returnKeyType="done"
+              />
+              <TouchableOpacity
+                style={[styles.button, (verifying || otp.length !== 6) && styles.buttonDisabled]}
+                onPress={handleVerifyOtp}
+                disabled={verifying || otp.length !== 6}
+              >
+                {verifying ? (
+                  <ActivityIndicator size="small" color="#1a1a1a" />
+                ) : (
+                  <Text style={styles.buttonText}>Verify</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity
+              onPress={() => {
+                setStatus('idle');
+                setOtp('');
+                setSentEmail('');
+              }}
+              style={styles.backButton}
+            >
+              <Text style={styles.backButtonText}>← Use different email</Text>
+            </TouchableOpacity>
+          </View>
         ) : (
           <View style={styles.form}>
             <TextInput
@@ -103,20 +206,20 @@ export default function AuthPrompt({ onSignIn, onDismiss }: AuthPromptProps) {
               returnKeyType="send"
             />
             <TouchableOpacity
-              style={[styles.button, loading && styles.buttonDisabled]}
+              style={[styles.button, (loading || !isValidEmail(email)) && styles.buttonDisabled]}
               onPress={handleSubmit}
-              disabled={loading || !email.trim()}
+              disabled={loading || !isValidEmail(email)}
             >
               {loading ? (
                 <ActivityIndicator size="small" color="#1a1a1a" />
               ) : (
-                <Text style={styles.buttonText}>Send Magic Link</Text>
+                <Text style={styles.buttonText}>Send Code</Text>
               )}
             </TouchableOpacity>
           </View>
         )}
 
-        {status === 'error' && (
+        {errorMessage && (
           <Text style={styles.errorText}>{errorMessage}</Text>
         )}
 
@@ -217,6 +320,55 @@ const styles = StyleSheet.create({
   successText: {
     color: '#10b981',
     fontSize: 14,
+    marginBottom: 8,
+    fontFamily: Platform.select({
+      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
+      ios: 'Menlo',
+      default: 'monospace',
+    }),
+  },
+  instructionText: {
+    color: '#9ca3af',
+    fontSize: 12,
+    marginBottom: 12,
+    lineHeight: 18,
+    fontFamily: Platform.select({
+      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
+      ios: 'Menlo',
+      default: 'monospace',
+    }),
+  },
+  otpForm: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  otpInput: {
+    flex: 1,
+    backgroundColor: '#1a1a1a',
+    borderWidth: 1,
+    borderColor: '#374151',
+    borderRadius: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    color: '#e5e7eb',
+    fontSize: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    letterSpacing: 8,
+    fontFamily: Platform.select({
+      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
+      ios: 'Menlo',
+      default: 'monospace',
+    }),
+  },
+  backButton: {
+    padding: 4,
+    alignSelf: 'flex-start',
+  },
+  backButtonText: {
+    color: '#6b7280',
+    fontSize: 12,
     fontFamily: Platform.select({
       web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
       ios: 'Menlo',
