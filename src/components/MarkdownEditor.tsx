@@ -1,9 +1,40 @@
-import { View, TextInput, Pressable, StyleSheet, Modal, Text, Platform } from 'react-native';
-import { CheckSquare, Calendar, Repeat, Edit2, Eye } from 'lucide-react-native';
+import { View, TextInput, Pressable, StyleSheet, Modal, Text, Platform, Dimensions } from 'react-native';
+import { CheckSquare, Calendar, Repeat, Edit2, Eye, Clock } from 'lucide-react-native';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { parseTaskLine, insertDueDate, insertRecurrence } from '@/src/utils/taskParser';
+
+// Detect if we're on a mobile device (including mobile web)
+const isMobile = Platform.OS !== 'web' || Dimensions.get('window').width < 768;
+
+interface ToolbarButtonProps {
+  icon: React.ReactNode;
+  label?: string;
+  onPress?: () => void;
+  active?: boolean;
+  variant?: 'default' | 'mode';
+}
+
+function ToolbarButton({ icon, label, onPress, active = false, variant = 'default' }: ToolbarButtonProps) {
+  const buttonStyle = variant === 'mode' ? styles.modeButton : styles.toolbarButton;
+  const activeStyle = active ? styles.filterButtonActive : undefined;
+
+  return (
+    <Pressable style={[buttonStyle, activeStyle]} onPress={onPress}>
+      {isMobile || !label ? (
+        icon
+      ) : (
+        <View style={styles.toolbarButtonContent}>
+          {icon}
+          <Text style={[styles.toolbarButtonText, active && styles.filterButtonTextActive]}>
+            {label}
+          </Text>
+        </View>
+      )}
+    </Pressable>
+  );
+}
 
 interface DateOption {
   label: string;
@@ -12,6 +43,8 @@ interface DateOption {
 
 function getDateOptions(): DateOption[] {
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
   const tomorrow = new Date(today);
   tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -25,7 +58,13 @@ function getDateOptions(): DateOption[] {
   const daysUntilSaturday = (6 - thisWeekend.getDay() + 7) % 7;
   thisWeekend.setDate(thisWeekend.getDate() + daysUntilSaturday);
 
-  const formatDate = (d: Date) => d.toISOString().split('T')[0];
+  // Format date in local timezone as YYYY-MM-DD
+  const formatDate = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   return [
     { label: `Today ${formatDate(today)}`, date: today },
@@ -42,35 +81,61 @@ interface ToolbarProps {
   onDatePicker?: () => void;
   onRecurrence?: () => void;
   syncStatusComponent?: React.ReactNode;
+  filterDue?: boolean;
+  filterScheduled?: boolean;
+  onFilterDueToggle?: () => void;
+  onFilterScheduledToggle?: () => void;
 }
 
-export function Toolbar({ mode, onModeChange, onNewTask, onDatePicker, onRecurrence, syncStatusComponent }: ToolbarProps) {
+export function Toolbar({ mode, onModeChange, onNewTask, onDatePicker, onRecurrence, syncStatusComponent, filterDue, filterScheduled, onFilterDueToggle, onFilterScheduledToggle }: ToolbarProps) {
+  const iconSize = isMobile ? 16 : 12;
+  
   return (
     <View style={styles.toolbar}>
       {/* Left side: mode toggle */}
-      <Pressable
+      <ToolbarButton
+        icon={mode === 'edit' ? <Eye size={iconSize} color="#9ca3af" strokeWidth={2} /> : <Edit2 size={iconSize} color="#9ca3af" strokeWidth={2} />}
+        label={mode === 'edit' ? 'View' : 'Edit'}
         onPress={() => onModeChange(mode === 'edit' ? 'read' : 'edit')}
-        style={styles.modeButton}
-      >
-        {mode === 'edit' ? (
-          <Eye size={16} color="#9ca3af" strokeWidth={2} />
-        ) : (
-          <Edit2 size={16} color="#9ca3af" strokeWidth={2} />
-        )}
-      </Pressable>
+        variant="mode"
+      />
 
       {/* Action buttons (edit mode only) */}
       {mode === 'edit' && (
         <>
-          <Pressable style={styles.toolbarButton} onPress={onNewTask}>
-            <CheckSquare size={16} color="#9ca3af" strokeWidth={2} />
-          </Pressable>
-          <Pressable style={styles.toolbarButton} onPress={onDatePicker}>
-            <Calendar size={16} color="#9ca3af" strokeWidth={2} />
-          </Pressable>
-          <Pressable style={styles.toolbarButton} onPress={onRecurrence}>
-            <Repeat size={16} color="#9ca3af" strokeWidth={2} />
-          </Pressable>
+          <ToolbarButton
+            icon={<CheckSquare size={iconSize} color="#9ca3af" strokeWidth={2} />}
+            label="New Task"
+            onPress={onNewTask}
+          />
+          <ToolbarButton
+            icon={<Calendar size={iconSize} color="#9ca3af" strokeWidth={2} />}
+            label="Date"
+            onPress={onDatePicker}
+          />
+          <ToolbarButton
+            icon={<Repeat size={iconSize} color="#9ca3af" strokeWidth={2} />}
+            label="Repeat"
+            onPress={onRecurrence}
+          />
+        </>
+      )}
+
+      {/* Filter buttons (read mode only) */}
+      {mode === 'read' && (
+        <>
+          <ToolbarButton
+            icon={<Calendar size={iconSize} color={filterDue ? '#ffffff' : '#9ca3af'} strokeWidth={2} />}
+            label="Due Today/Overdue"
+            onPress={onFilterDueToggle}
+            active={filterDue}
+          />
+          <ToolbarButton
+            icon={<Clock size={iconSize} color={filterScheduled ? '#ffffff' : '#9ca3af'} strokeWidth={2} />}
+            label="Scheduled Today/Past"
+            onPress={onFilterScheduledToggle}
+            active={filterScheduled}
+          />
         </>
       )}
 
@@ -112,6 +177,23 @@ const styles = StyleSheet.create({
   toolbarButton: {
     padding: 8,
     borderRadius: 4,
+    borderWidth: 1,
+    borderColor: '#374151',
+  },
+  toolbarButtonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  toolbarButtonText: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontFamily: Platform.select({
+      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
+      ios: 'Menlo',
+      android: 'monospace',
+      default: 'monospace',
+    }),
   },
   spacer: {
     flex: 1,
@@ -121,6 +203,13 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     borderWidth: 1,
     borderColor: '#374151',
+  },
+  filterButtonActive: {
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
+  },
+  filterButtonTextActive: {
+    color: '#ffffff',
   },
   editor: {
     flex: 1,
@@ -337,7 +426,11 @@ export default function MarkdownEditor({
   }, []);
 
   const handleDateOptionSelect = useCallback((date: Date) => {
-    const dateStr = date.toISOString().split('T')[0];
+    // Format date in local timezone as YYYY-MM-DD
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
 
     // Find which line the cursor is on using the ref
     const textBeforeCursor = content.substring(0, cursorPositionRef.current);
