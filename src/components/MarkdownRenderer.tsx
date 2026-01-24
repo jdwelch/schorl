@@ -163,9 +163,10 @@ const markdownStyles = {
       default: 'monospace',
     }),
   },
-  hr: {
-    backgroundColor: '#374151',
-  },
+   hr: {
+     backgroundColor: '#374151',
+     marginVertical: 16,
+   },
   list_item: {
     color: '#e5e7eb',
   },

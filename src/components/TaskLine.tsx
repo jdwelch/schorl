@@ -161,18 +161,18 @@ export default function TaskLine({ line, lineIndex, metadata, onToggle }: TaskLi
             <Text style={styles.badgeText}>{priorityEmoji[metadata.priority]}</Text>
           </View>
         )}
-        {metadata.dueDate && (
-          <View style={[styles.badge, dueDateStatus === 'overdue' && styles.overdueBadge]}>
-            <Text
-              style={[
-                styles.badgeText,
-                dueDateStatus === 'overdue' && styles.overdueBadgeText,
-              ]}
-            >
-              📅 {metadata.dueDate}
-            </Text>
-          </View>
-        )}
+         {metadata.dueDate && (
+           <View style={[styles.badge, !metadata.isChecked && (dueDateStatus === 'overdue' || dueDateStatus === 'today') && styles.overdueBadge]}>
+             <Text
+               style={[
+                 styles.badgeText,
+                 !metadata.isChecked && (dueDateStatus === 'overdue' || dueDateStatus === 'today') && styles.overdueBadgeText,
+               ]}
+             >
+               📅 {metadata.dueDate}
+             </Text>
+           </View>
+         )}
         {metadata.scheduledDate && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>⏳ {metadata.scheduledDate}</Text>
