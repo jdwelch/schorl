@@ -42,6 +42,7 @@ export default function TasksScreen() {
   const [showAuthPrompt, setShowAuthPrompt] = useState(false);
   const [syncState, setSyncState] = useState<SyncState>('offline');
   const [lastSync, setLastSync] = useState<Date | null>(null);
+  const [version, setVersion] = useState<number>(0);
 
   useEffect(() => {
     loadContent();
@@ -135,6 +136,7 @@ export default function TasksScreen() {
     try {
       const status = await getSyncStatus();
       setLastSync(status.lastSync);
+      setVersion(status.version);
 
       if (session) {
         // If authenticated, we're ready to sync (even if no remote document yet)
@@ -225,7 +227,7 @@ export default function TasksScreen() {
               initialCursorPosition={lastCursorPosition}
               onCursorPositionChange={setLastCursorPosition}
               syncStatusComponent={
-                !loading && <SyncStatus state={syncState} lastSync={lastSync} />
+                !loading && <SyncStatus state={syncState} lastSync={lastSync} version={version} />
               }
             />
           )}
@@ -235,7 +237,7 @@ export default function TasksScreen() {
               mode={mode}
               onModeChange={handleModeChange}
               syncStatusComponent={
-                !loading && <SyncStatus state={syncState} lastSync={lastSync} />
+                !loading && <SyncStatus state={syncState} lastSync={lastSync} version={version} />
               }
               onRefresh={handleRefresh}
               onTaskToggle={(lineIndex, newLine) => {
