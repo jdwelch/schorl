@@ -1,9 +1,9 @@
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, Platform, KeyboardAvoidingView } from 'react-native';
-import { useState, useEffect, useRef } from 'react';
-import { Mail, X, AlertCircle } from 'lucide-react-native';
-import Constants from 'expo-constants';
-import DevAuthBypass from './DevAuthBypass';
 import { useAuth } from '@/src/contexts/AuthContext';
+import Constants from 'expo-constants';
+import { Mail, X } from 'lucide-react-native';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import DevAuthBypass from './DevAuthBypass';
 
 interface AuthPromptProps {
   onSignIn: (email: string) => Promise<void>;
