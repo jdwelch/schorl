@@ -1,7 +1,7 @@
 import { View, Text, StyleSheet, ScrollView, Platform, RefreshControl } from 'react-native';
 import { useState } from 'react';
 import MarkdownDisplay from 'react-native-markdown-display';
-import { parseTaskLine } from '@/src/utils/taskParser';
+import { parseTaskLine, parseLocalDate, getTodayLocal } from '@/src/utils/taskParser';
 import TaskLine from '@/src/components/TaskLine';
 import { Toolbar } from '@/src/components/MarkdownEditor';
 
@@ -206,6 +206,8 @@ interface ContentBlock {
 
 export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeChange, syncStatusComponent, onRefresh }: MarkdownRendererProps) {
   const [refreshing, setRefreshing] = useState(false);
+  const [filterDue, setFilterDue] = useState(false);
+  const [filterScheduled, setFilterScheduled] = useState(false);
 
   const handleRefresh = async () => {
     if (!onRefresh) return;
@@ -216,6 +218,42 @@ export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeCh
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const shouldShowTask = (metadata: any): boolean => {
+    // If any filter is active, hide completed tasks
+    if ((filterDue || filterScheduled) && metadata.isChecked) {
+      return false;
+    }
+
+    // If no filters are active, show all tasks
+    if (!filterDue && !filterScheduled) {
+      return true;
+    }
+
+    // If task is complete, we already handled hiding it above
+    if (metadata.isChecked) {
+      return true; // Won't reach here due to first check
+    }
+
+    const todayStr = getTodayLocal();
+    const today = parseLocalDate(todayStr);
+
+    // Check due date filter
+    if (filterDue) {
+      if (!metadata.dueDate) return false;
+      const dueDate = parseLocalDate(metadata.dueDate);
+      if (dueDate > today) return false;
+    }
+
+    // Check scheduled date filter
+    if (filterScheduled) {
+      if (!metadata.scheduledDate) return false;
+      const scheduledDate = parseLocalDate(metadata.scheduledDate);
+      if (scheduledDate > today) return false;
+    }
+
+    return true;
   };
 
   if (!content.trim()) {
@@ -275,7 +313,15 @@ export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeCh
 
   return (
     <View style={styles.container}>
-      <Toolbar mode={mode} onModeChange={onModeChange} syncStatusComponent={syncStatusComponent} />
+      <Toolbar 
+        mode={mode} 
+        onModeChange={onModeChange} 
+        syncStatusComponent={syncStatusComponent}
+        filterDue={filterDue}
+        filterScheduled={filterScheduled}
+        onFilterDueToggle={() => setFilterDue(!filterDue)}
+        onFilterScheduledToggle={() => setFilterScheduled(!filterScheduled)}
+      />
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={styles.contentContainer}
@@ -298,10 +344,14 @@ export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeCh
               </View>
             ) : null;
           } else {
-            // Task block
+            // Task block - filter tasks based on active filters
+            const filteredTasks = block.tasks!.filter(({ metadata }) => shouldShowTask(metadata));
+            
+            if (filteredTasks.length === 0) return null;
+            
             return (
               <View key={`tasks-${blockIndex}`}>
-                {block.tasks!.map(({ line, metadata, lineIndex }) => (
+                {filteredTasks.map(({ line, metadata, lineIndex }) => (
                   <View key={`task-${lineIndex}`} style={styles.taskContainer}>
                     <TaskLine
                       line={line}

@@ -1,7 +1,7 @@
 import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
 import { CheckCircle2, Circle } from 'lucide-react-native';
 import { TaskMetadata } from '@/src/types/task.types';
-import { toggleTaskLine } from '@/src/utils/taskParser';
+import { toggleTaskLine, parseLocalDate, getTodayLocal } from '@/src/utils/taskParser';
 
 interface TaskLineProps {
   line: string;
@@ -111,9 +111,9 @@ export default function TaskLine({ line, lineIndex, metadata, onToggle }: TaskLi
   // Calculate due date status
   let dueDateStatus: 'overdue' | 'today' | 'soon' | null = null;
   if (metadata.dueDate) {
-    const dueDate = new Date(metadata.dueDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const dueDate = parseLocalDate(metadata.dueDate);
+    const todayStr = getTodayLocal();
+    const today = parseLocalDate(todayStr);
 
     if (dueDate < today) {
       dueDateStatus = 'overdue';

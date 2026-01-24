@@ -1,5 +1,20 @@
 import { TaskMetadata, TaskPriority } from '../types/task.types';
 
+// Get today's date in local timezone as YYYY-MM-DD
+export function getTodayLocal(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+// Parse YYYY-MM-DD string to Date object at midnight in local timezone
+export function parseLocalDate(dateString: string): Date {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+}
+
 // Regex patterns for task parsing
 const TASK_LINE_REGEX = /^(\s*)[-*+]\s+\[([ xX])\]\s+(.+)$/;
 const DUE_DATE_REGEX = /📅\s*(\d{4}-\d{2}-\d{2})/;
@@ -67,7 +82,7 @@ export function toggleTaskLine(line: string): string {
 
   // If checking the task, add done date if not present
   if (!wasChecked) {
-    const today = new Date().toISOString().split('T')[0];
+    const today = getTodayLocal();
     // Remove existing done date if any
     newDescription = newDescription.replace(/\s*✅\s*\d{4}-\d{2}-\d{2}/g, '');
     // Add new done date
@@ -108,7 +123,9 @@ export function createRecurringTask(line: string): string | null {
   const recurrence = metadata.recurrence.toLowerCase();
   let nextDate: Date | null = null;
 
+  // Start from today in local timezone
   const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   // Handle "every X day(s)" pattern
   const everyDayMatch = recurrence.match(/every\s+(\d+)\s*days?/);
@@ -156,7 +173,11 @@ export function createRecurringTask(line: string): string | null {
     return null;
   }
 
-  const nextDateStr = nextDate.toISOString().split('T')[0];
+  // Format as YYYY-MM-DD in local timezone
+  const year = nextDate.getFullYear();
+  const month = String(nextDate.getMonth() + 1).padStart(2, '0');
+  const day = String(nextDate.getDate()).padStart(2, '0');
+  const nextDateStr = `${year}-${month}-${day}`;
 
   // Create new unchecked task with updated scheduled date
   let newTaskDescription = metadata.description;
