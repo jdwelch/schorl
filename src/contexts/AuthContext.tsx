@@ -43,11 +43,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-
-      // Dev helper: log session token for multi-device testing
-      if (__DEV__ && session?.access_token && Platform.OS === 'web') {
-        console.log('🔑 Dev auth token:', session.access_token);
-      }
     });
 
     return () => subscription.unsubscribe();
