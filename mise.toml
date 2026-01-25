@@ -1,5 +1,0 @@
-[tools]
-claude = "latest"
-node = "latest"
-pnpm = "latest"
-supabase = "latest"
