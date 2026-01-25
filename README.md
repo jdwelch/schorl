@@ -1,50 +1,52 @@
-# Welcome to your Expo app 👋
+# Schorl
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A mobile-first task management app that uses plain text and the Obsidian Tasks markdown syntax. I built this for one user's needs: my own. I LOVE Obsidian and its task plugins, but it's too heavy for quick, ephemeral tasks, like a grocery list you'd traditionally put on paper.
 
-## Get started
+> Disclaimer: 95% of this tool was generated with LLMs. If that turns you off, read no further.
 
-1. Install dependencies
+## Motivation
 
-   ```bash
-   npm install
-   ```
+Task management apps often lock your data in proprietary formats or require constant internet connectivity. Schorl takes a different approach: your tasks are stored as plain markdown text using the well-documented [Obsidian Tasks](https://publish.obsidian.md/tasks/) syntax. 
 
-2. Start the app
+The goal is simple: a fast, clean mobile interface for managing tasks that respects the principle of data ownership.
 
-   ```bash
-   npx expo start
-   ```
+## Prior Art
 
-In the output, you'll find options to open the app in a
+This project builds on established tools and conventions:
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+- **[Obsidian Tasks](https://github.com/obsidian-tasks-group/obsidian-tasks)** - The syntax standard for task metadata (due dates, recurrence, priorities)
+- **Plain text task management** - Inspired by todo.txt, Taskwarrior, and other text-based systems
+- **Markdown-first** - Following the philosophy that your notes and tasks should be readable without special software
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Features
 
-## Get a fresh project
+- **Obsidian Tasks syntax** - Full support for due dates, scheduled dates, recurrence patterns, and priorities
+- **Mobile-optimized** - Built with React Native for iOS and web, with a focus on touch interfaces
+- **Edit and Read modes** - Switch between raw markdown editing and a rendered task view
+- **Smart task creation** - Type `@` on any task line to quickly add dates
+- **Recurring tasks** - Automatic generation of next instances when you complete repeating tasks
+- **Local-first** - Everything works offline, data stored on your device
 
-When you're ready, run:
+Built for iOS and web (Linux) with a monospace, dark-themed interface.
+
+## Tech Stack
+
+- **[Expo](https://expo.dev)** - React Native framework for building cross-platform apps
+- **Storage abstraction layer** - Clean interface (`StorageAPI`) designed to be swappable
+  - **AsyncStorage** - Local-first offline persistence
+  - **[Supabase](https://supabase.com)** - Cloud sync and authentication (optional)
+  - Architecture allows easy replacement with other backends (Firebase, self-hosted, etc.)
+
+## Getting Started
 
 ```bash
-npm run reset-project
+# Install dependencies
+pnpm install
+
+# Start development server
+pnpm expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## License
 
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+MIT
