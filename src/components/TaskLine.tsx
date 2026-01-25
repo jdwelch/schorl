@@ -13,12 +13,11 @@ interface TaskLineProps {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 12,
     paddingVertical: 4,
   },
   checkbox: {
-    marginTop: 2,
     flexShrink: 0,
   },
   content: {
