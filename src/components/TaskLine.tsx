@@ -13,7 +13,7 @@ interface TaskLineProps {
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     gap: 12,
     paddingVertical: 4,
   },
@@ -26,6 +26,7 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     alignItems: 'center',
     gap: 6,
+    paddingTop: 1, // Optical alignment with checkbox icon
   },
   taskText: {
     fontSize: 14,
