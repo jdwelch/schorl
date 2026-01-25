@@ -47,10 +47,30 @@ pnpm install
 pnpm expo start
 ```
 
+## Installing on iOS (Progressive Web App)
+
+Until native iOS builds are available, install Schorl as a Progressive Web App for a native-like experience:
+
+1. **Open in Safari** (required for iOS PWA support)
+   - Navigate to your deployment URL
+   
+2. **Add to Home Screen**
+   - Tap the Share button (□↑) at the bottom
+   - Select "Add to Home Screen"
+   - Tap "Add"
+
+3. **Launch from your home screen**
+   - Opens in standalone mode without browser chrome
+   - Works offline with local storage
+   - Optional cloud sync via email OTP authentication
+
+**Note:** iOS PWAs work reliably for this app but have some limitations (no push notifications, less background time). Native builds coming soon(?)
+
+
 ## License
 
 MIT
 
 ---
 
-AID Statement: Artificial Intelligence Tool: Claude Web, Claude Code, ChatGPT; Execution: Generated the vast majority of code. Generated placeholder icons..
+AID Statement: Artificial Intelligence Tools: Anthropic models, OpenAI models via various tools. Execution: Generated the vast majority of code. Generated placeholder icons. 
