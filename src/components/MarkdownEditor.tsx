@@ -497,17 +497,51 @@ export default function MarkdownEditor({
   }, [showDateModal, selectedOptionIndex, dateOptions, handleDateOptionSelect, handleDateCancel]);
 
   const handleNewTaskClick = () => {
-    const newTask = '- [ ] New task';
-    let newContent: string;
-    let newCursorPos: number;
+    // Find which line the cursor is on
+    const textBeforeCursor = content.substring(0, cursorPositionRef.current);
+    const lines = content.split('\n');
+    let currentLineIndex = textBeforeCursor.split('\n').length - 1;
 
-    if (content.trim()) {
-      newContent = content + '\n' + newTask;
-      newCursorPos = newContent.length; // Position after "New task"
-    } else {
-      newContent = newTask;
-      newCursorPos = newTask.length; // Position after "New task"
+    // Ensure we're within bounds
+    if (currentLineIndex < 0) {
+      currentLineIndex = 0;
     }
+    if (currentLineIndex >= lines.length) {
+      currentLineIndex = lines.length - 1;
+    }
+
+    const currentLine = lines[currentLineIndex] || '';
+
+    // Check if line is already a task
+    const metadata = parseTaskLine(currentLine);
+    if (metadata.isTask) {
+      // Already a task, do nothing
+      return;
+    }
+
+    // Extract indentation
+    const indentMatch = currentLine.match(/^(\s*)/);
+    const indent = indentMatch ? indentMatch[1] : '';
+
+    // Get the text content (without leading whitespace)
+    const lineText = currentLine.trimStart();
+
+    let newLine: string;
+    if (lineText === '') {
+      // Blank line - just add checkbox with indent
+      newLine = `${indent}- [ ] `;
+    } else {
+      // Line has text - prepend checkbox
+      newLine = `${indent}- [ ] ${lineText}`;
+    }
+
+    // Replace the line
+    lines[currentLineIndex] = newLine;
+    const newContent = lines.join('\n');
+
+    // Position cursor at end of the modified line
+    const textBeforeLine = lines.slice(0, currentLineIndex).join('\n');
+    const newCursorPos = (textBeforeLine ? textBeforeLine.length + 1 : 0) + newLine.length;
 
     // Set pending selection to apply after content updates
     pendingSelectionRef.current = { start: newCursorPos, end: newCursorPos };
