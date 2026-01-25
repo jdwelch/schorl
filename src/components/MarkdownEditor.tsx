@@ -519,20 +519,16 @@ export default function MarkdownEditor({
       return;
     }
 
-    // Extract indentation
-    const indentMatch = currentLine.match(/^(\s*)/);
-    const indent = indentMatch ? indentMatch[1] : '';
-
-    // Get the text content (without leading whitespace)
+    // Get the text content (strip all leading whitespace for flat list)
     const lineText = currentLine.trimStart();
 
     let newLine: string;
     if (lineText === '') {
-      // Blank line - just add checkbox with indent
-      newLine = `${indent}- [ ] `;
+      // Blank line - just add checkbox
+      newLine = '- [ ] ';
     } else {
       // Line has text - prepend checkbox
-      newLine = `${indent}- [ ] ${lineText}`;
+      newLine = `- [ ] ${lineText}`;
     }
 
     // Replace the line
@@ -674,18 +670,14 @@ export default function MarkdownEditor({
     if (metadata.isTask) {
       e.preventDefault();
 
-      // Extract indentation from current line
-      const indentMatch = currentLine.match(/^(\s*)/);
-      const indent = indentMatch ? indentMatch[1] : '';
-
-      // Insert newline with new task checkbox
+      // Insert newline with new task checkbox (no indentation for flat list)
       const textAfterCursor = content.substring(cursorPosition);
-      const newContent = `${textBeforeCursor}\n${indent}- [ ] ${textAfterCursor}`;
+      const newContent = `${textBeforeCursor}\n- [ ] ${textAfterCursor}`;
 
       onContentChange(newContent);
 
       // Move cursor to after the checkbox
-      const newCursorPos = cursorPosition + 1 + indent.length + 6; // 1 for \n, 6 for "- [ ] "
+      const newCursorPos = cursorPosition + 1 + 6; // 1 for \n, 6 for "- [ ] "
 
       setTimeout(() => {
         if (Platform.OS === 'web') {
