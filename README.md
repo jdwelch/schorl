@@ -50,3 +50,7 @@ pnpm expo start
 ## License
 
 MIT
+
+---
+
+AID Statement: Artificial Intelligence Tool: Claude Web, Claude Code, ChatGPT; Execution: Generated the vast majority of code. Generated placeholder icons..
