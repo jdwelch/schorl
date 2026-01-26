@@ -23,6 +23,7 @@ const RECURRENCE_REGEX = /🔁\s*(.+?)(?=\s*[📅⏳✅➕⏫🔼🔽⏬]|$)/;
 const DONE_DATE_REGEX = /✅\s*(\d{4}-\d{2}-\d{2})/;
 const CREATED_DATE_REGEX = /➕\s*(\d{4}-\d{2}-\d{2})/;
 const PRIORITY_REGEX = /(⏫|🔼|🔽|⏬)/;
+const MAYBE_REGEX = /\[\?\]/;
 
 const PRIORITY_MAP: Record<string, TaskPriority> = {
   '⏫': 'highest',
@@ -54,6 +55,8 @@ export function parseTaskLine(line: string): TaskMetadata {
   const priorityMatch = description.match(PRIORITY_REGEX)?.[1];
   const priority = priorityMatch ? PRIORITY_MAP[priorityMatch] : undefined;
 
+  const isMaybe = MAYBE_REGEX.test(description);
+
   return {
     isTask: true,
     isChecked,
@@ -64,6 +67,7 @@ export function parseTaskLine(line: string): TaskMetadata {
     doneDate,
     createdDate,
     priority,
+    isMaybe,
   };
 }
 

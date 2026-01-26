@@ -10,4 +10,5 @@ export interface TaskMetadata {
   doneDate?: string;      // YYYY-MM-DD
   priority?: TaskPriority; // ⏫ highest, 🔼 high, 🔽 low, ⏬ lowest
   createdDate?: string;   // YYYY-MM-DD
+  isMaybe?: boolean;      // true when [?] is present
 }

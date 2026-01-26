@@ -1,5 +1,5 @@
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { CheckCircle2, Circle } from 'lucide-react-native';
+import { CheckCircle2, Circle, CircleDashed } from 'lucide-react-native';
 import { TaskMetadata } from '@/src/types/task.types';
 import { toggleTaskLine, parseLocalDate, getTodayLocal } from '@/src/utils/taskParser';
 import { typography, colors, spacing, radius } from '@/src/theme';
@@ -38,6 +38,9 @@ const styles = StyleSheet.create({
   taskTextChecked: {
     color: colors.text.tertiary,
     textDecorationLine: 'line-through',
+  },
+  taskTextMaybe: {
+    opacity: 0.6,
   },
   badge: {
     paddingHorizontal: spacing.md,
@@ -87,7 +90,7 @@ export default function TaskLine({ line, lineIndex, metadata, onToggle }: TaskLi
 
   // Extract just the description without metadata
   const descriptionMatch = metadata.description.match(
-    /^(.+?)(?:\s*📅|\s*⏳|\s*🔁|\s*✅|\s*➕|\s*⏫|\s*🔼|\s*🔽|\s*⏬|$)/
+    /^(.+?)(?:\s*\[\?\]|\s*📅|\s*⏳|\s*🔁|\s*✅|\s*➕|\s*⏫|\s*🔼|\s*🔽|\s*⏬|$)/
   );
   const displayText = descriptionMatch ? descriptionMatch[1].trim() : metadata.description;
 
@@ -123,6 +126,8 @@ export default function TaskLine({ line, lineIndex, metadata, onToggle }: TaskLi
       <Pressable style={styles.checkbox} onPress={handleToggle}>
         {metadata.isChecked ? (
           <CheckCircle2 size={20} color={colors.success} strokeWidth={2} />
+        ) : metadata.isMaybe ? (
+          <CircleDashed size={20} color={colors.text.tertiary} strokeWidth={2} />
         ) : (
           <Circle size={20} color={colors.text.tertiary} strokeWidth={2} />
         )}
@@ -133,6 +138,7 @@ export default function TaskLine({ line, lineIndex, metadata, onToggle }: TaskLi
           style={[
             styles.taskText,
             metadata.isChecked && styles.taskTextChecked,
+            metadata.isMaybe && !metadata.isChecked && styles.taskTextMaybe,
           ]}
         >
           {displayText}
