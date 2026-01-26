@@ -1,6 +1,6 @@
 import { View, TextInput, Pressable, StyleSheet, Modal, Text, Platform, Dimensions } from 'react-native';
 import { CheckSquare, Calendar, Repeat, Edit2, Eye, Clock } from 'lucide-react-native';
-import { useRef, useState, useEffect, useCallback } from 'react';
+import { useRef, useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
 import { parseTaskLine, insertDueDate, insertRecurrence } from '@/src/utils/taskParser';
@@ -147,6 +147,10 @@ export function Toolbar({ mode, onModeChange, onNewTask, onDatePicker, onRecurre
       {syncStatusComponent}
     </View>
   );
+}
+
+export interface MarkdownEditorHandle {
+  handleNewTask: () => void;
 }
 
 interface MarkdownEditorProps {
@@ -337,7 +341,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export default function MarkdownEditor({
+const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
   content,
   onContentChange,
   onToggleTask,
@@ -346,7 +350,7 @@ export default function MarkdownEditor({
   initialCursorPosition,
   onCursorPositionChange,
   syncStatusComponent,
-}: MarkdownEditorProps) {
+}, ref) => {
   const textInputRef = useRef<TextInput>(null);
   const popoverRef = useRef<View>(null);
   const cursorPositionRef = useRef<number>(0);
@@ -484,7 +488,7 @@ export default function MarkdownEditor({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [showDateModal, selectedOptionIndex, dateOptions, handleDateOptionSelect, handleDateCancel]);
 
-  const handleNewTaskClick = () => {
+  const handleNewTaskClick = useCallback(() => {
     // Find which line the cursor is on
     const textBeforeCursor = content.substring(0, cursorPositionRef.current);
     const lines = content.split('\n');
@@ -532,8 +536,12 @@ export default function MarkdownEditor({
 
     // Update content (useEffect will handle selection and focus)
     onToggleTask(newContent);
-  };
+  }, [content, onToggleTask]);
 
+  // Expose handleNewTaskClick to parent via ref
+  useImperativeHandle(ref, () => ({
+    handleNewTask: handleNewTaskClick,
+  }), [handleNewTaskClick]);
 
   const handleDatePickerOpen = () => {
     // Store the current cursor position in ref before opening modal
@@ -876,4 +884,8 @@ export default function MarkdownEditor({
       </Modal>
     </View>
   );
-}
+});
+
+MarkdownEditor.displayName = 'MarkdownEditor';
+
+export default MarkdownEditor;

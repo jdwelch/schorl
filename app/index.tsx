@@ -1,12 +1,12 @@
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 
 import { storage } from '@/src/utils/storage';
 import { syncLocalToRemote, getSyncStatus } from '@/src/utils/supabaseStorage';
 import { parseTaskLine, createRecurringTask } from '@/src/utils/taskParser';
 import { useAuth } from '@/src/contexts/AuthContext';
-import MarkdownEditor from '@/src/components/MarkdownEditor';
+import MarkdownEditor, { MarkdownEditorHandle } from '@/src/components/MarkdownEditor';
 import MarkdownRenderer from '@/src/components/MarkdownRenderer';
 import AuthPrompt from '@/src/components/AuthPrompt';
 import SyncStatus, { SyncState } from '@/src/components/SyncStatus';
@@ -35,6 +35,7 @@ type Mode = 'edit' | 'read';
 
 export default function TasksScreen() {
   const { session, signInWithEmail } = useAuth();
+  const editorRef = useRef<MarkdownEditorHandle>(null);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<Mode>('read');
   const [content, setContent] = useState('');
@@ -185,7 +186,7 @@ export default function TasksScreen() {
     handleContentChange(newContent);
   };
 
-  // Keyboard shortcuts for web - Ctrl+E to toggle Edit/View mode
+  // Keyboard shortcuts for web - Ctrl+E to toggle Edit/View mode, Ctrl+K for new task
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 
@@ -196,12 +197,19 @@ export default function TasksScreen() {
         e.stopPropagation();
         setMode((currentMode) => currentMode === 'edit' ? 'read' : 'edit');
       }
+      
+      // Ctrl+K (or Cmd+K on Mac) to create new task (edit mode only)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k' && mode === 'edit') {
+        e.preventDefault();
+        e.stopPropagation();
+        editorRef.current?.handleNewTask();
+      }
     };
 
     // Use capture phase to catch the event before TextInput can handle it
     window.addEventListener('keydown', handleKeyDown, true);
     return () => window.removeEventListener('keydown', handleKeyDown, true);
-  }, []);
+  }, [mode]);
 
   if (loading) {
     return (
@@ -219,6 +227,7 @@ export default function TasksScreen() {
         <View style={styles.content}>
           {mode === 'edit' && (
             <MarkdownEditor
+              ref={editorRef}
               content={content}
               onContentChange={handleContentChange}
               onToggleTask={handleToggleTask}
