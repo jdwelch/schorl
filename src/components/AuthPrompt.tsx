@@ -1,5 +1,4 @@
 import { useAuth } from '@/src/contexts/AuthContext';
-import Constants from 'expo-constants';
 import { Mail, X } from 'lucide-react-native';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -18,18 +17,8 @@ export default function AuthPrompt({ onSignIn, onDismiss }: AuthPromptProps) {
   const [verifying, setVerifying] = useState(false);
   const [status, setStatus] = useState<'idle' | 'sent' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
-  const [isExpoGo, setIsExpoGo] = useState(false);
   const [sentEmail, setSentEmail] = useState('');
   const otpInputRef = useRef<TextInput>(null);
-
-  useEffect(() => {
-    // Check if running in Expo Go
-    const expoGo = Platform.OS !== 'web' &&
-                   typeof __DEV__ !== 'undefined' &&
-                   __DEV__ &&
-                   !Constants.appOwnership;
-    setIsExpoGo(expoGo);
-  }, []);
 
   // Auto-focus OTP input when switching to sent state
   useEffect(() => {
@@ -76,8 +65,8 @@ export default function AuthPrompt({ onSignIn, onDismiss }: AuthPromptProps) {
     }
   };
 
-  const handleVerifyOtp = async () => {
-    if (!otp.trim() || otp.trim().length !== 6) {
+  const verifyOtpWithCode = async (code: string) => {
+    if (!code.trim() || code.trim().length !== 6) {
       setErrorMessage('Please enter the 6-digit code');
       return;
     }
@@ -90,7 +79,7 @@ export default function AuthPrompt({ onSignIn, onDismiss }: AuthPromptProps) {
 
       const { data, error } = await supabase.auth.verifyOtp({
         email: sentEmail,
-        token: otp.trim(),
+        token: code.trim(),
         type: 'email',
       });
 
@@ -113,19 +102,13 @@ export default function AuthPrompt({ onSignIn, onDismiss }: AuthPromptProps) {
     }
   };
 
+  const handleVerifyOtp = async () => {
+    await verifyOtpWithCode(otp);
+  };
+
   const handleOtpChange = (text: string) => {
     const digits = text.replace(/[^0-9]/g, '').slice(0, 6);
     setOtp(digits);
-
-    // Auto-submit when 6 digits entered
-    if (digits.length === 6 && !verifying) {
-      // Small delay to let the user see the complete code
-      setTimeout(() => {
-        if (!verifying) {
-          handleVerifyOtp();
-        }
-      }, 300);
-    }
   };
 
   return (
@@ -277,7 +260,7 @@ const styles = StyleSheet.create({
   },
   form: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
   },
   input: {
     flex: 1,
@@ -297,12 +280,12 @@ const styles = StyleSheet.create({
   },
   button: {
     backgroundColor: '#3B82F6',
-    paddingHorizontal: 16,
+    paddingHorizontal: 12,
     paddingVertical: 10,
     borderRadius: 6,
     justifyContent: 'center',
     alignItems: 'center',
-    minWidth: 140,
+    flexShrink: 0,
   },
   buttonDisabled: {
     opacity: 0.5,
@@ -340,7 +323,7 @@ const styles = StyleSheet.create({
   },
   otpForm: {
     flexDirection: 'row',
-    gap: 8,
+    gap: 6,
     marginBottom: 12,
   },
   otpInput: {
@@ -349,13 +332,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#374151',
     borderRadius: 6,
-    paddingHorizontal: 12,
+    paddingHorizontal: 8,
     paddingVertical: 10,
     color: '#e5e7eb',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
     textAlign: 'center',
-    letterSpacing: 8,
+    letterSpacing: 4,
     fontFamily: Platform.select({
       web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
       ios: 'Menlo',
