@@ -1,7 +1,8 @@
-import { View, Text, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import { CheckCircle2, Circle } from 'lucide-react-native';
 import { TaskMetadata } from '@/src/types/task.types';
 import { toggleTaskLine, parseLocalDate, getTodayLocal } from '@/src/utils/taskParser';
+import { typography, colors, spacing, radius } from '@/src/theme';
 
 interface TaskLineProps {
   line: string;
@@ -14,8 +15,8 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
-    paddingVertical: 4,
+    gap: spacing.lg,
+    paddingVertical: spacing.xs,
   },
   checkbox: {
     flexShrink: 0,
@@ -25,66 +26,56 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 6,
+    gap: spacing.sm,
     paddingTop: 1, // Optical alignment with checkbox icon
   },
   taskText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#e5e7eb',
-    fontFamily: Platform.select({
-      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'monospace',
-    }),
+    fontSize: typography.fontSize.base,
+    lineHeight: typography.lineHeight.base,
+    color: colors.text.primary,
+    fontFamily: typography.fontFamily.monospace,
   },
   taskTextChecked: {
-    color: '#6b7280',
+    color: colors.text.tertiary,
     textDecorationLine: 'line-through',
   },
   badge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: spacing.md,
     paddingVertical: 2,
-    borderRadius: 4,
-    backgroundColor: '#374151',
+    borderRadius: radius.sm,
+    backgroundColor: colors.badge.default,
   },
   badgeText: {
-    fontSize: 11,
-    color: '#9ca3af',
-    fontFamily: Platform.select({
-      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'monospace',
-    }),
+    fontSize: typography.fontSize.small,
+    color: colors.badge.defaultText,
+    fontFamily: typography.fontFamily.monospace,
   },
   dueBadge: {
-    backgroundColor: '#78350f',
+    backgroundColor: colors.badge.due,
   },
   dueBadgeText: {
-    color: '#fcd34d',
+    color: colors.badge.dueText,
   },
   overdueBadge: {
-    backgroundColor: 'rgba(88, 28, 135, 0.3)',
+    backgroundColor: colors.badge.overdue,
   },
   overdueBadgeText: {
-    color: '#d8b4fe',
+    color: colors.badge.overdueText,
   },
   priorityBadge: {
-    backgroundColor: '#374151',
+    backgroundColor: colors.badge.default,
   },
   priorityHighest: {
-    backgroundColor: '#7f1d1d',
+    backgroundColor: colors.priority.highest,
   },
   priorityHigh: {
-    backgroundColor: '#78350f',
+    backgroundColor: colors.priority.high,
   },
   priorityLow: {
-    backgroundColor: '#1e3a8a',
+    backgroundColor: colors.priority.low,
   },
   priorityLowest: {
-    backgroundColor: '#3730a3',
+    backgroundColor: colors.priority.lowest,
   },
 });
 
@@ -131,9 +122,9 @@ export default function TaskLine({ line, lineIndex, metadata, onToggle }: TaskLi
     <View style={styles.container}>
       <Pressable style={styles.checkbox} onPress={handleToggle}>
         {metadata.isChecked ? (
-          <CheckCircle2 size={20} color="#10B981" strokeWidth={2} />
+          <CheckCircle2 size={20} color={colors.success} strokeWidth={2} />
         ) : (
-          <Circle size={20} color="#6b7280" strokeWidth={2} />
+          <Circle size={20} color={colors.text.tertiary} strokeWidth={2} />
         )}
       </Pressable>
 

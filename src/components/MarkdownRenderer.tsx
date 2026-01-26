@@ -1,9 +1,10 @@
-import { View, Text, StyleSheet, ScrollView, Platform, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
 import { useState } from 'react';
 import MarkdownDisplay from 'react-native-markdown-display';
 import { parseTaskLine, parseLocalDate, getTodayLocal } from '@/src/utils/taskParser';
 import TaskLine from '@/src/components/TaskLine';
 import { Toolbar } from '@/src/components/MarkdownEditor';
+import { typography, colors, spacing, radius } from '@/src/theme';
 
 interface MarkdownRendererProps {
   content: string;
@@ -17,184 +18,126 @@ interface MarkdownRendererProps {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.background.primary,
   },
   scrollView: {
     flex: 1,
   },
   contentContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
   },
   taskContainer: {
-    marginVertical: 6,
+    marginVertical: spacing.sm,
   },
   emptyText: {
-    color: '#6b7280',
-    fontSize: 14,
+    color: colors.text.tertiary,
+    fontSize: typography.fontSize.base,
     textAlign: 'center',
     marginTop: 40,
   },
 });
 
+// Shared heading style - all heading levels (h1-h6) use the same style
+const headingStyle = {
+  color: colors.text.heading,
+  fontFamily: typography.fontFamily.monospace,
+  fontSize: typography.fontSize.heading,
+  fontWeight: typography.fontWeight.bold,
+  lineHeight: typography.lineHeight.heading,
+};
+
 const markdownStyles = {
   body: {
-    color: '#e5e7eb',
-    fontFamily: Platform.select({
-      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'monospace',
-    }),
+    color: colors.text.primary,
+    fontFamily: typography.fontFamily.monospace,
   },
-  heading1: {
-    color: '#f3f4f6',
-    fontFamily: Platform.select({
-      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'monospace',
-    }),
-  },
-  heading2: {
-    color: '#f3f4f6',
-    fontFamily: Platform.select({
-      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'monospace',
-    }),
-  },
-  heading3: {
-    color: '#f3f4f6',
-    fontFamily: Platform.select({
-      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'monospace',
-    }),
-  },
-  heading4: {
-    color: '#f3f4f6',
-    fontFamily: Platform.select({
-      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'monospace',
-    }),
-  },
-  heading5: {
-    color: '#f3f4f6',
-    fontFamily: Platform.select({
-      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'monospace',
-    }),
-  },
-  heading6: {
-    color: '#f3f4f6',
-    fontFamily: Platform.select({
-      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'monospace',
-    }),
-  },
+  heading1: headingStyle,
+  heading2: headingStyle,
+  heading3: headingStyle,
+  heading4: headingStyle,
+  heading5: headingStyle,
+  heading6: headingStyle,
   text: {
-    color: '#e5e7eb',
+    color: colors.text.primary,
   },
   paragraph: {
-    color: '#e5e7eb',
-    marginTop: 4,
-    marginBottom: 4,
+    color: colors.text.primary,
+    marginTop: spacing.xs,
+    marginBottom: spacing.xs,
   },
   strong: {
-    color: '#f3f4f6',
+    color: colors.text.heading,
+    fontWeight: typography.fontWeight.bold,
   },
   em: {
-    color: '#e5e7eb',
+    color: colors.text.primary,
   },
   link: {
-    color: '#3B82F6',
+    color: colors.accent,
   },
   blockquote: {
-    backgroundColor: '#262626',
-    borderLeftColor: '#374151',
+    backgroundColor: colors.background.secondary,
+    borderLeftColor: colors.border,
     borderLeftWidth: 4,
-    paddingLeft: 12,
-    color: '#9ca3af',
+    paddingLeft: spacing.lg,
+    color: colors.text.secondary,
   },
   code_inline: {
-    backgroundColor: '#262626',
-    color: '#fcd34d',
-    fontFamily: Platform.select({
-      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'monospace',
-    }),
+    backgroundColor: colors.badge.code,
+    color: colors.badge.codeText,
+    fontFamily: typography.fontFamily.monospace,
   },
   code_block: {
-    backgroundColor: '#262626',
-    color: '#e5e7eb',
-    borderColor: '#374151',
+    backgroundColor: colors.background.secondary,
+    color: colors.text.primary,
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 4,
-    padding: 12,
-    fontFamily: Platform.select({
-      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'monospace',
-    }),
+    borderRadius: radius.sm,
+    padding: spacing.lg,
+    fontFamily: typography.fontFamily.monospace,
   },
   fence: {
-    backgroundColor: '#262626',
-    color: '#e5e7eb',
-    borderColor: '#374151',
+    backgroundColor: colors.background.secondary,
+    color: colors.text.primary,
+    borderColor: colors.border,
     borderWidth: 1,
-    borderRadius: 4,
-    padding: 12,
-    fontFamily: Platform.select({
-      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
-      ios: 'Menlo',
-      android: 'monospace',
-      default: 'monospace',
-    }),
+    borderRadius: radius.sm,
+    padding: spacing.lg,
+    fontFamily: typography.fontFamily.monospace,
   },
-   hr: {
-     backgroundColor: '#374151',
-     marginVertical: 16,
-   },
+  hr: {
+    backgroundColor: colors.border,
+    marginVertical: spacing.xl,
+  },
   list_item: {
-    color: '#e5e7eb',
+    color: colors.text.primary,
   },
   bullet_list: {
-    color: '#e5e7eb',
+    color: colors.text.primary,
   },
   ordered_list: {
-    color: '#e5e7eb',
+    color: colors.text.primary,
   },
   table: {
-    borderColor: '#374151',
+    borderColor: colors.border,
   },
   thead: {
-    backgroundColor: '#262626',
+    backgroundColor: colors.background.secondary,
   },
   tbody: {
-    backgroundColor: '#1a1a1a',
+    backgroundColor: colors.background.primary,
   },
   th: {
-    color: '#f3f4f6',
-    borderColor: '#374151',
+    color: colors.text.heading,
+    borderColor: colors.border,
   },
   td: {
-    color: '#e5e7eb',
-    borderColor: '#374151',
+    color: colors.text.primary,
+    borderColor: colors.border,
   },
   tr: {
-    borderColor: '#374151',
+    borderColor: colors.border,
   },
 };
 

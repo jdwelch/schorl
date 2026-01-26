@@ -111,16 +111,39 @@ When checking a recurring task in read mode (`app/index.tsx:139-157`):
 
 ### Styling Approach
 
-**All styling uses StyleSheet.create()** - NativeWind/className not used due to React Native compatibility issues.
+**All styling uses StyleSheet.create()** with centralized **design tokens** in `src/theme/`.
 
-**Dark theme only** with monospace fonts:
-- Backgrounds: `#1a1a1a` (main), `#262626` (surfaces)
-- Text: `#e5e7eb` (primary), `#9ca3af` (secondary), `#6b7280` (tertiary)
-- Borders: `#374151`
-- Accent: `#3B82F6` (blue)
-- Font stack: `IBM Plex Mono, Roboto Mono, Menlo, monospace` (web), `Menlo` (iOS), `monospace` (Android)
+**Design Token System** (`src/theme/`):
+- **`tokens.ts`** - Single source of truth for all design values
+  - Typography: Font families, sizes (unitless dp), weights, line heights
+  - Colors: Semantic color palette (e.g., `colors.text.primary` not `#e5e7eb`)
+  - Spacing: Consistent scale (xs: 4, sm: 6, md: 8, lg: 12, xl: 16, xxl: 20)
+  - Border radius: Corner radius values (sm: 4, md: 6, lg: 12)
+- **`utils.ts`** - Scaling utilities for responsive sizing (PixelRatio-based)
+- **`index.ts`** - Barrel export for easy imports
 
-Use `Platform.select()` for platform-specific styling.
+**Usage in components**:
+```typescript
+import { typography, colors, spacing, radius } from '@/src/theme';
+
+const styles = StyleSheet.create({
+  text: {
+    fontSize: typography.fontSize.base,
+    color: colors.text.primary,
+    fontFamily: typography.fontFamily.monospace,
+  },
+});
+```
+
+**Dark theme only**:
+- All sizes are unitless and represent density-independent pixels (React Native does not support rem/em)
+- Platform-specific fonts resolved once in tokens via `Platform.select()`
+- Monospace font stack: `IBM Plex Mono, Roboto Mono, Menlo, monospace` (web), `Menlo` (iOS), `monospace` (Android)
+
+**Headings**: All heading levels (h1-h6) share identical styling:
+- Font size: 17 (1.2x base of 14)
+- Font weight: 700 (bold)
+- No visual hierarchy between heading levels
 
 ### Path Aliases
 
