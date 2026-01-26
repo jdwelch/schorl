@@ -272,18 +272,20 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.xs,
     minWidth: 280,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
-    zIndex: 1000,
     ...Platform.select({
       web: {
-        // @ts-ignore - web-specific
-        outline: 'none',
+        // @ts-ignore - web-specific boxShadow
+        boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
       },
     }),
+    zIndex: 1000,
   },
   dateOption: {
     paddingHorizontal: spacing.lg,
@@ -731,7 +733,12 @@ export default function MarkdownEditor({
             />
             <View
               ref={popoverRef}
-              style={[styles.datePopover, { top: 60, left: 16, zIndex: 1000 }]}
+              style={[
+                styles.datePopover,
+                { top: 60, left: 16, zIndex: 1000 },
+                // @ts-ignore - web-specific style
+                Platform.OS === 'web' && { outline: 'none' },
+              ]}
               // @ts-ignore - web-specific props
               tabIndex={0}
             >

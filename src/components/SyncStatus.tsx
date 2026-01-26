@@ -1,6 +1,7 @@
-import { View, Text, StyleSheet, Platform, Pressable, Animated, Dimensions } from 'react-native';
+import { Text, StyleSheet, Platform, Pressable, Animated, Dimensions } from 'react-native';
 import { Cloud, CloudOff, Loader2 } from 'lucide-react-native';
 import { useState, useRef, useEffect } from 'react';
+import { typography, colors, spacing, radius } from '@/src/theme';
 
 export type SyncState = 'synced' | 'syncing' | 'offline' | 'error';
 
@@ -45,12 +46,12 @@ export default function SyncStatus({ state, lastSync, version }: SyncStatusProps
     const iconSize = isMobile ? 16 : 14;
     switch (state) {
       case 'synced':
-        return <Cloud size={iconSize} color="#10b981" />;
+        return <Cloud size={iconSize} color={colors.success} />;
       case 'syncing':
-        return <Loader2 size={iconSize} color="#3B82F6" />;
+        return <Loader2 size={iconSize} color={colors.accent} />;
       case 'offline':
       case 'error':
-        return <CloudOff size={iconSize} color="#6b7280" />;
+        return <CloudOff size={iconSize} color={colors.text.tertiary} />;
     }
   };
 
@@ -89,12 +90,12 @@ export default function SyncStatus({ state, lastSync, version }: SyncStatusProps
   const getTextColor = () => {
     switch (state) {
       case 'synced':
-        return '#10b981';
+        return colors.success;
       case 'syncing':
-        return '#3B82F6';
+        return colors.accent;
       case 'offline':
       case 'error':
-        return '#6b7280';
+        return colors.text.tertiary;
     }
   };
 
@@ -135,43 +136,43 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
   text: {
-    fontSize: 12,
-    fontFamily: Platform.select({
-      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
-      ios: 'Menlo',
-      default: 'monospace',
-    }),
+    fontSize: typography.fontSize.tiny,
+    fontFamily: typography.fontFamily.monospace,
   },
   toast: {
     position: 'absolute',
     top: 60,
-    right: 12,
-    backgroundColor: '#262626',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    right: spacing.lg,
+    backgroundColor: colors.background.secondary,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.lg,
     borderWidth: 1,
-    borderColor: '#374151',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 8,
+    borderColor: colors.border,
+    ...Platform.select({
+      web: {
+        // @ts-ignore - web-specific boxShadow
+        boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.3,
+        shadowRadius: 8,
+        elevation: 8,
+      },
+    }),
     zIndex: 1000,
   },
   toastText: {
-    fontSize: 12,
-    color: '#e5e7eb',
-    fontFamily: Platform.select({
-      web: 'IBM Plex Mono, Roboto Mono, Menlo, monospace',
-      ios: 'Menlo',
-      default: 'monospace',
-    }),
+    fontSize: typography.fontSize.tiny,
+    color: colors.text.primary,
+    fontFamily: typography.fontFamily.monospace,
     lineHeight: 18,
   },
 });
