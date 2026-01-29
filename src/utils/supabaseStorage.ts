@@ -14,6 +14,21 @@ interface DocumentRow {
 }
 
 export const supabaseStorageAPI: StorageAPI = {
+  async saveContentLocal(content: string): Promise<void> {
+    // Skip Supabase during SSR
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    try {
+      // Only save to local storage (instant, no network)
+      await AsyncStorage.setItem(STORAGE_KEY, content);
+    } catch (error) {
+      console.error('Error in saveContentLocal:', error);
+      throw error;
+    }
+  },
+
   async getContent(): Promise<string> {
     // Skip Supabase during SSR
     if (typeof window === 'undefined') {

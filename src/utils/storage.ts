@@ -5,6 +5,7 @@ const STORAGE_KEY = '@schorl:content';
 export interface StorageAPI {
   getContent: () => Promise<string>;
   saveContent: (content: string) => Promise<void>;
+  saveContentLocal: (content: string) => Promise<void>;
 }
 
 export const localStorageAPI: StorageAPI = {
@@ -23,6 +24,15 @@ export const localStorageAPI: StorageAPI = {
       await AsyncStorage.setItem(STORAGE_KEY, content);
     } catch (error) {
       console.error('Error saving content:', error);
+      throw error;
+    }
+  },
+
+  async saveContentLocal(content: string): Promise<void> {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, content);
+    } catch (error) {
+      console.error('Error saving content locally:', error);
       throw error;
     }
   },

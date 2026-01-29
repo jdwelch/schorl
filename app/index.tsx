@@ -6,6 +6,7 @@ import { storage } from '@/src/utils/storage';
 import { syncLocalToRemote, getSyncStatus } from '@/src/utils/supabaseStorage';
 import { parseTaskLine, createRecurringTask } from '@/src/utils/taskParser';
 import { useAuth } from '@/src/contexts/AuthContext';
+import { useDebouncedSync } from '@/src/hooks/useDebouncedSync';
 import MarkdownEditor, { MarkdownEditorHandle } from '@/src/components/MarkdownEditor';
 import MarkdownRenderer from '@/src/components/MarkdownRenderer';
 import AuthPrompt from '@/src/components/AuthPrompt';
@@ -45,9 +46,32 @@ export default function TasksScreen() {
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [version, setVersion] = useState<number>(0);
 
+  // Debounced remote sync (1s debounce, 5s throttle)
+  const { scheduleSync, flushSync } = useDebouncedSync({
+    debounceMs: 1000,
+    throttleMs: 5000,
+    onSync: async (content: string) => {
+      try {
+        setSyncState('syncing');
+        await storage.saveContent(content);
+        await updateSyncStatus();
+      } catch (error) {
+        console.error('Remote sync failed:', error);
+        setSyncState('error');
+      }
+    },
+  });
+
   useEffect(() => {
     loadContent();
   }, []);
+
+  // Flush pending syncs on unmount
+  useEffect(() => {
+    return () => {
+      flushSync();
+    };
+  }, [flushSync]);
 
   // Periodically check for remote updates when authenticated
   useEffect(() => {
@@ -151,25 +175,17 @@ export default function TasksScreen() {
     }
   };
 
-  const syncLocalContentToRemote = async () => {
-    try {
-      setSyncState('syncing');
-      await syncLocalToRemote();
-      await updateSyncStatus();
-    } catch (error) {
-      console.error('Failed to sync local content:', error);
-      setSyncState('error');
-    }
-  };
-
   const handleContentChange = async (newContent: string) => {
     setContent(newContent);
+    
     try {
-      setSyncState('syncing');
-      await storage.saveContent(newContent);
-      await updateSyncStatus();
+      // 1. Save locally IMMEDIATELY (fast, no network)
+      await storage.saveContentLocal(newContent);
+      
+      // 2. Schedule remote sync (debounced + throttled)
+      scheduleSync(newContent);
     } catch (error) {
-      console.error('Failed to save content:', error);
+      console.error('Failed to save content locally:', error);
       setSyncState('error');
     }
   };
@@ -178,7 +194,9 @@ export default function TasksScreen() {
     await signInWithEmail(email);
   };
 
-  const handleModeChange = (newMode: Mode) => {
+  const handleModeChange = async (newMode: Mode) => {
+    // Flush any pending syncs before switching modes
+    await flushSync();
     setMode(newMode);
   };
 
