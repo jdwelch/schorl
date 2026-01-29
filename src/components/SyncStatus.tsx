@@ -1,4 +1,4 @@
-import { Text, StyleSheet, Platform, Pressable, Animated, Dimensions } from 'react-native';
+import { Text, StyleSheet, Platform, Pressable, Animated, Dimensions, Modal } from 'react-native';
 import { Cloud, CloudOff, Loader2 } from 'lucide-react-native';
 import { useState, useRef, useEffect } from 'react';
 import { typography, colors, spacing, radius } from '@/src/theme';
@@ -110,23 +110,30 @@ export default function SyncStatus({ state, lastSync, version }: SyncStatusProps
         )}
       </Pressable>
       
-      {showToast && isMobile && (
-        <Animated.View 
-          style={[
-            styles.toast,
-            {
-              opacity: fadeAnim,
-              transform: [{
-                translateY: fadeAnim.interpolate({
-                  inputRange: [0, 1],
-                  outputRange: [-20, 0],
-                }),
-              }],
-            },
-          ]}
+      {isMobile && (
+        <Modal
+          visible={showToast}
+          transparent
+          animationType="none"
+          onRequestClose={() => setShowToast(false)}
         >
-          <Text style={styles.toastText}>{getToastText()}</Text>
-        </Animated.View>
+          <Animated.View 
+            style={[
+              styles.toast,
+              {
+                opacity: fadeAnim,
+                transform: [{
+                  translateY: fadeAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-20, 0],
+                  }),
+                }],
+              },
+            ]}
+          >
+            <Text style={styles.toastText}>{getToastText()}</Text>
+          </Animated.View>
+        </Modal>
       )}
     </>
   );
@@ -157,17 +164,17 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         // @ts-ignore - web-specific boxShadow
-        boxShadow: '0px 4px 8px rgba(0, 0, 0, 0.3)',
+        boxShadow: '0px 8px 16px rgba(0, 0, 0, 0.6)',
       },
       default: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 8,
-        elevation: 8,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.5,
+        shadowRadius: 12,
+        elevation: 16,
       },
     }),
-    zIndex: 1000,
+    zIndex: 9999,
   },
   toastText: {
     fontSize: typography.fontSize.tiny,

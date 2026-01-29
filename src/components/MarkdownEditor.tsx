@@ -722,6 +722,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
         placeholderTextColor="#6b7280"
         multiline
         textAlignVertical="top"
+        autoCapitalize="sentences"
       />
 
       {/* Date picker - Popover for web, Modal for mobile */}
