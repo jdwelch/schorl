@@ -1,5 +1,5 @@
-import { View, Text, StyleSheet, ScrollView, RefreshControl } from 'react-native';
-import { useState } from 'react';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, RefreshControl, Platform, Linking } from 'react-native';
 import MarkdownDisplay from 'react-native-markdown-display';
 import { parseTaskLine, parseLocalDate, getTodayLocal } from '@/src/utils/taskParser';
 import TaskLine from '@/src/components/TaskLine';
@@ -75,6 +75,10 @@ const markdownStyles = {
   },
   link: {
     color: colors.accent,
+    ...(Platform.OS === 'web' && {
+      cursor: 'pointer',
+      textDecorationLine: 'underline',
+    }),
   },
   blockquote: {
     backgroundColor: colors.background.secondary,
@@ -141,10 +145,35 @@ const markdownStyles = {
   },
 };
 
+// Custom render rules to ensure links are properly styled and clickable
+const renderRules = {
+  link: (node: any, children: any, parent: any, styles: any) => {
+    // Force link color on all children by cloning them with the link color style
+    const styledChildren = React.Children.map(children, (child) => {
+      if (React.isValidElement(child) && child.type === Text) {
+        return React.cloneElement(child as React.ReactElement<any>, {
+          style: [child.props.style, { color: colors.accent }],
+        });
+      }
+      return child;
+    });
+
+    return (
+      <Text
+        key={node.key}
+        style={[styles.link, { color: colors.accent }]}
+        onPress={() => Linking.openURL(node.attributes.href).catch((err) => console.error('Failed to open URL:', err))}
+      >
+        {styledChildren}
+      </Text>
+    );
+  },
+};
+
 interface ContentBlock {
   type: 'markdown' | 'tasks';
   content: string; // for markdown blocks
-  tasks?: Array<{ line: string; metadata: any; lineIndex: number }>; // for task blocks
+  tasks?: { line: string; metadata: any; lineIndex: number }[]; // for task blocks
 }
 
 export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeChange, syncStatusComponent, onRefresh }: MarkdownRendererProps) {
@@ -283,7 +312,9 @@ export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeCh
           if (block.type === 'markdown') {
             return block.content.trim() ? (
               <View key={`markdown-${blockIndex}`} style={{ marginBottom: 16 }}>
-                <MarkdownDisplay style={markdownStyles}>{block.content}</MarkdownDisplay>
+                <MarkdownDisplay style={markdownStyles} rules={renderRules}>
+                  {block.content}
+                </MarkdownDisplay>
               </View>
             ) : null;
           } else {

@@ -1,4 +1,4 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Linking } from 'react-native';
 import { CheckCircle2, Circle, CircleDashed } from 'lucide-react-native';
 import { TaskMetadata } from '@/src/types/task.types';
 import { toggleTaskLine, parseLocalDate, getTodayLocal } from '@/src/utils/taskParser';
@@ -9,6 +9,31 @@ interface TaskLineProps {
   lineIndex: number;
   metadata: TaskMetadata;
   onToggle: (lineIndex: number, newLine: string) => void;
+}
+
+// Helper to parse markdown links in text
+function parseMarkdownLinks(text: string) {
+  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const parts: { type: 'text' | 'link'; content: string; url?: string }[] = [];
+  let lastIndex = 0;
+  let match;
+
+  while ((match = linkRegex.exec(text)) !== null) {
+    // Add text before the link
+    if (match.index > lastIndex) {
+      parts.push({ type: 'text', content: text.substring(lastIndex, match.index) });
+    }
+    // Add the link
+    parts.push({ type: 'link', content: match[1], url: match[2] });
+    lastIndex = match.index + match[0].length;
+  }
+
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push({ type: 'text', content: text.substring(lastIndex) });
+  }
+
+  return parts.length > 0 ? parts : [{ type: 'text', content: text }];
 }
 
 const styles = StyleSheet.create({
@@ -41,6 +66,13 @@ const styles = StyleSheet.create({
   },
   taskTextMaybe: {
     opacity: 0.6,
+  },
+  taskLink: {
+    fontSize: typography.fontSize.base,
+    lineHeight: typography.lineHeight.base,
+    color: colors.accent,
+    fontFamily: typography.fontFamily.monospace,
+    textDecorationLine: 'underline',
   },
   badge: {
     paddingHorizontal: spacing.md,
@@ -141,7 +173,23 @@ export default function TaskLine({ line, lineIndex, metadata, onToggle }: TaskLi
             metadata.isMaybe && !metadata.isChecked && styles.taskTextMaybe,
           ]}
         >
-          {displayText}
+          {parseMarkdownLinks(displayText).map((part, idx) => {
+            if (part.type === 'link') {
+              return (
+                <Text
+                  key={idx}
+                  style={[
+                    styles.taskLink,
+                    metadata.isChecked && styles.taskTextChecked,
+                  ]}
+                  onPress={() => Linking.openURL(part.url!).catch((err) => console.error('Failed to open URL:', err))}
+                >
+                  {part.content}
+                </Text>
+              );
+            }
+            return <Text key={idx}>{part.content}</Text>;
+          })}
         </Text>
 
         {metadata.priority && (
