@@ -16,6 +16,7 @@ interface SyncStatusProps {
 
 export default function SyncStatus({ state, lastSync, version }: SyncStatusProps) {
   const [showToast, setShowToast] = useState(false);
+  const [showWebText, setShowWebText] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -39,6 +40,8 @@ export default function SyncStatus({ state, lastSync, version }: SyncStatusProps
   const handlePress = () => {
     if (isMobile) {
       setShowToast(true);
+    } else {
+      setShowWebText(!showWebText);
     }
   };
 
@@ -80,11 +83,13 @@ export default function SyncStatus({ state, lastSync, version }: SyncStatusProps
     }
   };
 
-  const getToastText = () => {
+  const getFullText = (multiline: boolean = false) => {
     const statusText = getText();
-    const versionText = version !== undefined ? `\nVersion: ${version}` : '';
-    const stateText = state === 'offline' ? '\nLocal only' : state === 'synced' ? '\nSynced to cloud' : '';
-    return statusText + versionText + stateText;
+    const versionText = version !== undefined ? `Version ${version}` : '';
+    const stateText = state === 'offline' ? 'Local only' : state === 'synced' ? 'Cloud' : '';
+    
+    const parts = [statusText, versionText, stateText].filter(Boolean);
+    return parts.join(multiline ? '\n' : ' · ');
   };
 
   const getTextColor = () => {
@@ -103,9 +108,9 @@ export default function SyncStatus({ state, lastSync, version }: SyncStatusProps
     <>
       <Pressable style={styles.container} onPress={handlePress}>
         {getIcon()}
-        {!isMobile && (
+        {!isMobile && showWebText && (
           <Text style={[styles.text, { color: getTextColor() }]}>
-            {getText()}
+            {getFullText()}
           </Text>
         )}
       </Pressable>
@@ -131,7 +136,7 @@ export default function SyncStatus({ state, lastSync, version }: SyncStatusProps
               },
             ]}
           >
-            <Text style={styles.toastText}>{getToastText()}</Text>
+            <Text style={styles.toastText}>{getFullText(true)}</Text>
           </Animated.View>
         </Modal>
       )}
