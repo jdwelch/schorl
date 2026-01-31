@@ -1,8 +1,8 @@
 import { View, ActivityIndicator, StyleSheet, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useCallback } from 'react';
 
-import { storage } from '@/src/utils/storage';
+import { storage, RemoteUpdate } from '@/src/utils/storage';
 import { syncLocalToRemote, getSyncStatus } from '@/src/utils/supabaseStorage';
 import { parseTaskLine, createRecurringTask } from '@/src/utils/taskParser';
 import { useAuth } from '@/src/contexts/AuthContext';
@@ -50,10 +50,13 @@ export default function TasksScreen() {
   const { scheduleSync, flushSync } = useDebouncedSync({
     debounceMs: 1000,
     throttleMs: 5000,
-    onSync: async (content: string) => {
+    onSync: async (syncContent: string) => {
       try {
         setSyncState('syncing');
-        const result = await storage.saveContent(content);
+        const result = await storage.saveContent(syncContent);
+        
+        // Clear pending flag after successful save
+        hasPendingChangesRef.current = false;
         
         if (result.hadConflict) {
           // Show conflict notification briefly, then return to synced
@@ -65,6 +68,7 @@ export default function TasksScreen() {
       } catch (error) {
         console.error('Remote sync failed:', error);
         setSyncState('error');
+        // Keep pending flag true on error so we retry
       }
     },
   });
@@ -80,23 +84,78 @@ export default function TasksScreen() {
     };
   }, [flushSync]);
 
-  // Periodically check for remote updates when authenticated
+  // Track if we have local pending changes (for conflict detection)
+  const hasPendingChangesRef = useRef(false);
+  const contentRef = useRef(content);
+  
+  // Keep contentRef in sync
+  useEffect(() => {
+    contentRef.current = content;
+  }, [content]);
+
+  // Handle remote updates from realtime subscription
+  const handleRemoteUpdate = useCallback((update: RemoteUpdate) => {
+    // If we have pending local changes, don't overwrite — user's edits take priority
+    // The next save will push our version (with conflict resolution)
+    if (hasPendingChangesRef.current) {
+      console.log('Remote update received but local changes pending, skipping');
+      return;
+    }
+
+    // Only update if content actually changed
+    if (update.content !== contentRef.current) {
+      setContent(update.content);
+      setVersion(update.version);
+      setLastSync(new Date());
+    }
+  }, []);
+
+  // Subscribe to realtime updates when authenticated
   useEffect(() => {
     if (!session) return;
 
-    const interval = setInterval(async () => {
-      try {
-        const savedContent = await storage.getContent();
-        if (savedContent !== content) {
-          setContent(savedContent);
+    // Use realtime subscription if available, otherwise fall back to polling
+    if (storage.subscribe) {
+      const unsubscribe = storage.subscribe(handleRemoteUpdate);
+      return unsubscribe;
+    } else {
+      // Fallback: polling for providers without realtime
+      const interval = setInterval(async () => {
+        try {
+          const savedContent = await storage.getContent();
+          if (savedContent !== contentRef.current && !hasPendingChangesRef.current) {
+            setContent(savedContent);
+          }
+        } catch (error) {
+          console.error('Error checking for updates:', error);
         }
-      } catch (error) {
-        console.error('Error checking for updates:', error);
-      }
-    }, 5000); // Check every 5 seconds
+      }, 5000);
 
-    return () => clearInterval(interval);
-  }, [session, content]);
+      return () => clearInterval(interval);
+    }
+  }, [session, handleRemoteUpdate]);
+
+  // Refetch content when PWA returns to foreground
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible' && session && !hasPendingChangesRef.current) {
+        try {
+          const savedContent = await storage.getContent();
+          if (savedContent !== contentRef.current) {
+            setContent(savedContent);
+            await updateSyncStatus();
+          }
+        } catch (error) {
+          console.error('Error refetching on foreground:', error);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [session]);
 
   // Show auth prompt after a delay if not authenticated
   useEffect(() => {
@@ -184,6 +243,7 @@ export default function TasksScreen() {
 
   const handleContentChange = async (newContent: string) => {
     setContent(newContent);
+    hasPendingChangesRef.current = true;
     
     try {
       // 1. Save locally IMMEDIATELY (fast, no network)

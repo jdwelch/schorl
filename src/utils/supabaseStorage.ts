@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/src/lib/supabase';
-import { StorageAPI, SaveResult } from './storage';
+import { StorageAPI, SaveResult, RemoteUpdate } from './storage';
 
 const STORAGE_KEY = '@schorl:content';
 const VERSION_KEY = '@schorl:version';
@@ -93,6 +93,65 @@ export const supabaseStorageAPI: StorageAPI = {
       const localContent = await AsyncStorage.getItem(STORAGE_KEY);
       return localContent || '';
     }
+  },
+
+  subscribe(onUpdate: (update: RemoteUpdate) => void): () => void {
+    // Skip during SSR
+    if (typeof window === 'undefined') {
+      return () => {};
+    }
+
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+
+    // Set up subscription asynchronously
+    const setupSubscription = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session?.user) {
+        // Not authenticated, no subscription needed
+        return;
+      }
+
+      const userId = session.user.id;
+
+      channel = supabase
+        .channel(`documents:${userId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'documents',
+            filter: `user_id=eq.${userId}`,
+          },
+          async (payload) => {
+            const newDoc = payload.new as DocumentRow;
+            
+            // Update local cache
+            await Promise.all([
+              AsyncStorage.setItem(STORAGE_KEY, newDoc.content),
+              AsyncStorage.setItem(VERSION_KEY, newDoc.version.toString()),
+              AsyncStorage.setItem(LAST_SYNC_KEY, newDoc.updated_at),
+            ]);
+
+            // Notify listener
+            onUpdate({
+              content: newDoc.content,
+              version: newDoc.version,
+            });
+          }
+        )
+        .subscribe();
+    };
+
+    setupSubscription();
+
+    // Return unsubscribe function
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
   },
 
   async saveContent(content: string): Promise<SaveResult> {

@@ -7,10 +7,19 @@ export interface SaveResult {
   hadConflict?: boolean;
 }
 
+export interface RemoteUpdate {
+  content: string;
+  version: number;
+}
+
 export interface StorageAPI {
   getContent: () => Promise<string>;
   saveContent: (content: string) => Promise<SaveResult>;
   saveContentLocal: (content: string) => Promise<void>;
+  
+  // Optional: realtime subscription for providers that support it
+  // Returns unsubscribe function
+  subscribe?: (onUpdate: (update: RemoteUpdate) => void) => () => void;
 }
 
 export const localStorageAPI: StorageAPI = {
