@@ -63,6 +63,7 @@ export const colors = {
   border: '#374151',
   accent: '#3B82F6',       // Primary action color
   success: '#10B981',      // Completed tasks
+  warning: '#f59e0b',      // Warnings, conflicts
   
   // Badge colors
   badge: {

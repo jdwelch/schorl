@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/src/lib/supabase';
-import { StorageAPI } from './storage';
+import { StorageAPI, SaveResult } from './storage';
 
 const STORAGE_KEY = '@schorl:content';
 const VERSION_KEY = '@schorl:version';
@@ -95,10 +95,10 @@ export const supabaseStorageAPI: StorageAPI = {
     }
   },
 
-  async saveContent(content: string): Promise<void> {
+  async saveContent(content: string): Promise<SaveResult> {
     // Skip Supabase during SSR
     if (typeof window === 'undefined') {
-      return;
+      return { success: true };
     }
 
     try {
@@ -110,37 +110,89 @@ export const supabaseStorageAPI: StorageAPI = {
 
       if (!session?.user) {
         // Not authenticated, local save is enough
-        return;
+        return { success: true };
       }
 
-      // Get current version
-      const localVersionStr = await AsyncStorage.getItem(VERSION_KEY);
-      const currentVersion = localVersionStr ? parseInt(localVersionStr, 10) : 0;
-      const newVersion = currentVersion + 1;
+      // Retry logic for version conflicts
+      const maxRetries = 3;
+      let hadConflict = false;
 
-      // Upsert to Supabase
-      const { error } = await supabase
-        .from('documents')
-        .upsert({
-          user_id: session.user.id,
-          content,
-          version: newVersion,
-        }, {
-          onConflict: 'user_id',
-        });
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        // Fetch current remote version (server-side source of truth)
+        const { data: remoteDoc, error: fetchError } = await supabase
+          .from('documents')
+          .select('version')
+          .eq('user_id', session.user.id)
+          .maybeSingle();
 
-      if (error) {
-        console.error('Error saving to Supabase:', error);
-        // Don't throw - we already saved locally
-        return;
+        if (fetchError) {
+          console.error('Error fetching remote version:', fetchError);
+          return { success: false };
+        }
+
+        const currentVersion = remoteDoc?.version || 0;
+        const newVersion = currentVersion + 1;
+
+        // Attempt optimistic lock: only update if version matches
+        if (remoteDoc) {
+          // Document exists, use UPDATE with version check
+          const { data, error } = await supabase
+            .from('documents')
+            .update({
+              content,
+              version: newVersion,
+            })
+            .eq('user_id', session.user.id)
+            .eq('version', currentVersion) // Optimistic lock
+            .select();
+
+          if (error) {
+            console.error('Error updating Supabase:', error);
+            return { success: false };
+          }
+
+          // Check if update succeeded (returns empty array if version mismatch)
+          if (data && data.length > 0) {
+            // Success! Update local version
+            await AsyncStorage.setItem(VERSION_KEY, newVersion.toString());
+            await AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+            return { success: true, hadConflict };
+          }
+
+          // Version conflict, mark and retry
+          hadConflict = true;
+          console.warn(`Version conflict on attempt ${attempt + 1}, retrying...`);
+          await new Promise(resolve => setTimeout(resolve, 100 * (attempt + 1))); // Exponential backoff
+          continue;
+        } else {
+          // No remote document, insert new one
+          const { error } = await supabase
+            .from('documents')
+            .insert({
+              user_id: session.user.id,
+              content,
+              version: newVersion,
+            });
+
+          if (error) {
+            console.error('Error inserting to Supabase:', error);
+            return { success: false };
+          }
+
+          // Update local version
+          await AsyncStorage.setItem(VERSION_KEY, newVersion.toString());
+          await AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+          return { success: true, hadConflict };
+        }
       }
 
-      // Update local version
-      await AsyncStorage.setItem(VERSION_KEY, newVersion.toString());
-      await AsyncStorage.setItem(LAST_SYNC_KEY, new Date().toISOString());
+      // Failed after retries
+      console.error('Failed to save after maximum retries due to version conflicts');
+      return { success: false, hadConflict: true };
     } catch (error) {
       console.error('Error in saveContent:', error);
       // Don't throw - at least we saved locally
+      return { success: false };
     }
   },
 };

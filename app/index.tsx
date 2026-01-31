@@ -53,7 +53,14 @@ export default function TasksScreen() {
     onSync: async (content: string) => {
       try {
         setSyncState('syncing');
-        await storage.saveContent(content);
+        const result = await storage.saveContent(content);
+        
+        if (result.hadConflict) {
+          // Show conflict notification briefly, then return to synced
+          setSyncState('conflict');
+          setTimeout(() => setSyncState('synced'), 2000);
+        }
+        
         await updateSyncStatus();
       } catch (error) {
         console.error('Remote sync failed:', error);

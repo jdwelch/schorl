@@ -3,7 +3,7 @@ import { Cloud, CloudOff, Loader2 } from 'lucide-react-native';
 import { useState, useRef, useEffect } from 'react';
 import { typography, colors, spacing, radius } from '@/src/theme';
 
-export type SyncState = 'synced' | 'syncing' | 'offline' | 'error';
+export type SyncState = 'synced' | 'syncing' | 'offline' | 'error' | 'conflict';
 
 // Detect if we're on a mobile device (including mobile web)
 const isMobile = Platform.OS !== 'web' || Dimensions.get('window').width < 768;
@@ -52,6 +52,8 @@ export default function SyncStatus({ state, lastSync, version }: SyncStatusProps
         return <Cloud size={iconSize} color={colors.success} />;
       case 'syncing':
         return <Loader2 size={iconSize} color={colors.accent} />;
+      case 'conflict':
+        return <Cloud size={iconSize} color={colors.warning} />;
       case 'offline':
       case 'error':
         return <CloudOff size={iconSize} color={colors.text.tertiary} />;
@@ -76,6 +78,8 @@ export default function SyncStatus({ state, lastSync, version }: SyncStatusProps
         return 'Synced';
       case 'syncing':
         return 'Syncing...';
+      case 'conflict':
+        return 'Conflict resolved';
       case 'offline':
         return 'Working offline';
       case 'error':
@@ -98,6 +102,8 @@ export default function SyncStatus({ state, lastSync, version }: SyncStatusProps
         return colors.success;
       case 'syncing':
         return colors.accent;
+      case 'conflict':
+        return colors.warning;
       case 'offline':
       case 'error':
         return colors.text.tertiary;

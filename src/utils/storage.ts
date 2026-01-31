@@ -2,9 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const STORAGE_KEY = '@schorl:content';
 
+export interface SaveResult {
+  success: boolean;
+  hadConflict?: boolean;
+}
+
 export interface StorageAPI {
   getContent: () => Promise<string>;
-  saveContent: (content: string) => Promise<void>;
+  saveContent: (content: string) => Promise<SaveResult>;
   saveContentLocal: (content: string) => Promise<void>;
 }
 
@@ -19,9 +24,10 @@ export const localStorageAPI: StorageAPI = {
     }
   },
 
-  async saveContent(content: string): Promise<void> {
+  async saveContent(content: string): Promise<SaveResult> {
     try {
       await AsyncStorage.setItem(STORAGE_KEY, content);
+      return { success: true };
     } catch (error) {
       console.error('Error saving content:', error);
       throw error;
