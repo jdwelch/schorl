@@ -442,6 +442,16 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
     if (isTaskLine) {
       const updatedLine = insertDueDate(currentLine, dateStr);
       lines[currentLineIndex] = updatedLine;
+      
+      // Calculate cursor position at end of updated line
+      const textBeforeLine = lines.slice(0, currentLineIndex).join('\n');
+      const newCursorPos = (textBeforeLine ? textBeforeLine.length + 1 : 0) + updatedLine.length;
+      
+      // Set selection BEFORE content change to preserve cursor position
+      setSelection({ start: newCursorPos, end: newCursorPos });
+      setCursorPosition(newCursorPos);
+      cursorPositionRef.current = newCursorPos;
+      
       onContentChange(lines.join('\n'));
     }
 
@@ -634,6 +644,16 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
     if (metadata.isTask) {
       const updatedLine = insertRecurrence(currentLine, recurrenceStr);
       lines[currentLineIndex] = updatedLine;
+      
+      // Calculate cursor position at end of updated line
+      const textBeforeLine = lines.slice(0, currentLineIndex).join('\n');
+      const newCursorPos = (textBeforeLine ? textBeforeLine.length + 1 : 0) + updatedLine.length;
+      
+      // Set selection BEFORE content change to preserve cursor position
+      setSelection({ start: newCursorPos, end: newCursorPos });
+      setCursorPosition(newCursorPos);
+      cursorPositionRef.current = newCursorPos;
+      
       onContentChange(lines.join('\n'));
     }
 
