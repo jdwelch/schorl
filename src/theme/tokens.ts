@@ -80,6 +80,9 @@ export const colors = {
     codeText: '#fcd34d',
   },
   
+  // Inline formatting colors
+  highlight: 'rgba(255, 235, 59, 0.5)', // Yellow marker with 0.5 opacity
+  
   // Priority colors
   priority: {
     highest: '#7f1d1d',

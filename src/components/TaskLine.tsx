@@ -11,29 +11,59 @@ interface TaskLineProps {
   onToggle: (lineIndex: number, newLine: string) => void;
 }
 
-// Helper to parse markdown links in text
-function parseMarkdownLinks(text: string) {
-  const linkRegex = /\[([^\]]+)\]\(([^)]+)\)/g;
-  const parts: { type: 'text' | 'link'; content: string; url?: string }[] = [];
+type TextSegment = {
+  type: 'text' | 'bold' | 'italic' | 'code' | 'highlight' | 'link';
+  content: string;
+  url?: string;
+};
+
+// Parse inline markdown formatting
+function parseInlineMarkdown(text: string): TextSegment[] {
+  const segments: TextSegment[] = [];
+  let remaining = text;
+
+  // Combined regex for all inline formatting
+  const regex = /(\*\*([^*]+)\*\*)|(\*([^*]+)\*)|(_([^_]+)_)|(`([^`]+)`)|(\[([^\]]+)\]\(([^)]+)\))|(==([^=]+)==)/g;
+  
   let lastIndex = 0;
   let match;
 
-  while ((match = linkRegex.exec(text)) !== null) {
-    // Add text before the link
+  while ((match = regex.exec(remaining)) !== null) {
+    // Add plain text before this match
     if (match.index > lastIndex) {
-      parts.push({ type: 'text', content: text.substring(lastIndex, match.index) });
+      segments.push({ type: 'text', content: remaining.substring(lastIndex, match.index) });
     }
-    // Add the link
-    parts.push({ type: 'link', content: match[1], url: match[2] });
+
+    // Determine which pattern matched
+    if (match[1]) {
+      // **bold**
+      segments.push({ type: 'bold', content: match[2] });
+    } else if (match[3]) {
+      // *italic*
+      segments.push({ type: 'italic', content: match[4] });
+    } else if (match[5]) {
+      // _italic_
+      segments.push({ type: 'italic', content: match[6] });
+    } else if (match[7]) {
+      // `code`
+      segments.push({ type: 'code', content: match[8] });
+    } else if (match[9]) {
+      // [link](url)
+      segments.push({ type: 'link', content: match[10], url: match[11] });
+    } else if (match[12]) {
+      // ==highlight==
+      segments.push({ type: 'highlight', content: match[13] });
+    }
+
     lastIndex = match.index + match[0].length;
   }
 
   // Add remaining text
-  if (lastIndex < text.length) {
-    parts.push({ type: 'text', content: text.substring(lastIndex) });
+  if (lastIndex < remaining.length) {
+    segments.push({ type: 'text', content: remaining.substring(lastIndex) });
   }
 
-  return parts.length > 0 ? parts : [{ type: 'text', content: text }];
+  return segments.length > 0 ? segments : [{ type: 'text', content: text }];
 }
 
 const styles = StyleSheet.create({
@@ -73,6 +103,22 @@ const styles = StyleSheet.create({
     color: colors.accent,
     fontFamily: typography.fontFamily.monospace,
     textDecorationLine: 'underline',
+  },
+  taskBold: {
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.heading,
+  },
+  taskItalic: {
+    fontStyle: 'italic',
+  },
+  taskCode: {
+    backgroundColor: colors.badge.code,
+    color: colors.badge.codeText,
+    fontFamily: typography.fontFamily.monospace,
+    paddingHorizontal: 2,
+  },
+  taskHighlight: {
+    backgroundColor: colors.highlight,
   },
   badge: {
     paddingHorizontal: spacing.md,
@@ -173,22 +219,47 @@ export default function TaskLine({ line, lineIndex, metadata, onToggle }: TaskLi
             metadata.isMaybe && !metadata.isChecked && styles.taskTextMaybe,
           ]}
         >
-          {parseMarkdownLinks(displayText).map((part, idx) => {
-            if (part.type === 'link') {
+          {parseInlineMarkdown(displayText).map((segment, idx) => {
+            const baseStyle = [
+              metadata.isChecked && styles.taskTextChecked,
+            ];
+
+            if (segment.type === 'bold') {
+              return (
+                <Text key={idx} style={[...baseStyle, styles.taskBold]}>
+                  {segment.content}
+                </Text>
+              );
+            } else if (segment.type === 'italic') {
+              return (
+                <Text key={idx} style={[...baseStyle, styles.taskItalic]}>
+                  {segment.content}
+                </Text>
+              );
+            } else if (segment.type === 'code') {
+              return (
+                <Text key={idx} style={[...baseStyle, styles.taskCode]}>
+                  {segment.content}
+                </Text>
+              );
+            } else if (segment.type === 'highlight') {
+              return (
+                <Text key={idx} style={[...baseStyle, styles.taskHighlight]}>
+                  {segment.content}
+                </Text>
+              );
+            } else if (segment.type === 'link') {
               return (
                 <Text
                   key={idx}
-                  style={[
-                    styles.taskLink,
-                    metadata.isChecked && styles.taskTextChecked,
-                  ]}
-                  onPress={() => Linking.openURL(part.url!).catch((err) => console.error('Failed to open URL:', err))}
+                  style={[...baseStyle, styles.taskLink]}
+                  onPress={() => Linking.openURL(segment.url!).catch((err) => console.error('Failed to open URL:', err))}
                 >
-                  {part.content}
+                  {segment.content}
                 </Text>
               );
             }
-            return <Text key={idx}>{part.content}</Text>;
+            return <Text key={idx}>{segment.content}</Text>;
           })}
         </Text>
 
