@@ -174,6 +174,7 @@ interface ContentBlock {
   type: 'markdown' | 'tasks';
   content: string; // for markdown blocks
   tasks?: { line: string; metadata: any; lineIndex: number }[]; // for task blocks
+  visible?: boolean; // determines if block should render when filters are active
 }
 
 export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeChange, syncStatusComponent, onRefresh }: MarkdownRendererProps) {
@@ -283,6 +284,29 @@ export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeCh
   // Push the last block
   if (currentBlock) blocks.push(currentBlock);
 
+  // Post-process blocks to determine visibility based on active filters
+  const isFilterActive = filterDue || filterScheduled;
+  
+  if (isFilterActive) {
+    // When filtering: hide all markdown, only show task blocks with visible tasks
+    blocks.forEach(block => {
+      if (block.type === 'markdown') {
+        block.visible = false;
+      } else {
+        // Task block - only visible if has tasks after filtering
+        const visibleTasks = block.tasks!.filter(({ metadata }) => 
+          shouldShowTask(metadata)
+        );
+        block.visible = visibleTasks.length > 0;
+      }
+    });
+  } else {
+    // No filters active - show everything
+    blocks.forEach(block => {
+      block.visible = true;
+    });
+  }
+
   return (
     <View style={styles.container}>
       <Toolbar 
@@ -309,6 +333,9 @@ export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeCh
         }
       >
         {blocks.map((block, blockIndex) => {
+          // Skip blocks marked as invisible
+          if (block.visible === false) return null;
+
           if (block.type === 'markdown') {
             return block.content.trim() ? (
               <View key={`markdown-${blockIndex}`} style={{ marginBottom: 16 }}>
@@ -320,8 +347,6 @@ export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeCh
           } else {
             // Task block - filter tasks based on active filters
             const filteredTasks = block.tasks!.filter(({ metadata }) => shouldShowTask(metadata));
-            
-            if (filteredTasks.length === 0) return null;
             
             return (
               <View key={`tasks-${blockIndex}`}>
