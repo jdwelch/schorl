@@ -11,6 +11,7 @@ import MarkdownEditor, { MarkdownEditorHandle } from '@/src/components/MarkdownE
 import MarkdownRenderer from '@/src/components/MarkdownRenderer';
 import AuthPrompt from '@/src/components/AuthPrompt';
 import SyncStatus, { SyncState } from '@/src/components/SyncStatus';
+import DevBanner from '@/src/components/DevBanner';
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -308,6 +309,7 @@ export default function TasksScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top']}>
+      <DevBanner />
       <View style={styles.container}>
         <View style={styles.content}>
           {mode === 'edit' && (

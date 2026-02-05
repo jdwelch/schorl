@@ -48,3 +48,5 @@ yarn-error.*
 TASKS.md
 .claude/
 mise.toml
+TODO.md
+DEPLOY.md
