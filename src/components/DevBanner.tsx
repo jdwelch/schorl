@@ -14,12 +14,12 @@ const DiagonalStripes = () => {
         <Pattern
           id="stripes"
           patternUnits="userSpaceOnUse"
-          width="20"
-          height="20"
+          width="8"
+          height="8"
           patternTransform="rotate(45)"
         >
-          <Rect x="0" y="0" width="10" height="20" fill="#000000" />
-          <Rect x="10" y="0" width="10" height="20" fill="#f59e0b" />
+          <Rect x="0" y="0" width="4" height="8" fill="#000000" />
+          <Rect x="4" y="0" width="4" height="8" fill="#f59e0b" />
         </Pattern>
       </Defs>
       <Rect x="0" y="0" width="100%" height="100%" fill="url(#stripes)" />
