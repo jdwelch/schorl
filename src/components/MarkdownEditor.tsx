@@ -682,8 +682,18 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(({
     const currentLine = lines[currentLineIndex];
     const metadata = parseTaskLine(currentLine);
 
-    // If on a task line, insert a new task line
+    // If on a task line, check cursor position within the line
     if (metadata.isTask) {
+      // Calculate cursor position within the current line
+      const textBeforeLine = lines.slice(0, currentLineIndex).join('\n');
+      const cursorPosInLine = cursorPosition - (textBeforeLine ? textBeforeLine.length + 1 : 0);
+
+      // If cursor is at the very start of the line, allow default behavior (plain newline)
+      if (cursorPosInLine === 0) {
+        return;
+      }
+
+      // Otherwise, insert a new task line
       e.preventDefault();
 
       // Insert newline with new task checkbox (no indentation for flat list)
