@@ -1,7 +1,8 @@
-import { Text, StyleSheet, Platform, Pressable, Animated, Dimensions, Modal } from 'react-native';
+import { View, Text, StyleSheet, Platform, Pressable, Animated, Dimensions, Modal } from 'react-native';
 import { Cloud, CloudOff, Loader2 } from 'lucide-react-native';
 import { useState, useRef, useEffect } from 'react';
 import { typography, colors, spacing, radius } from '@/src/theme';
+import { useAuth } from '@/src/contexts/AuthContext';
 
 export type SyncState = 'synced' | 'syncing' | 'offline' | 'error' | 'conflict';
 
@@ -15,6 +16,7 @@ interface SyncStatusProps {
 }
 
 export default function SyncStatus({ state, lastSync, version }: SyncStatusProps) {
+  const { signOut, session } = useAuth();
   const [showToast, setShowToast] = useState(false);
   const [showWebText, setShowWebText] = useState(false);
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -110,16 +112,47 @@ export default function SyncStatus({ state, lastSync, version }: SyncStatusProps
     }
   };
 
+  const handleSignOut = async () => {
+    if (!session) {
+      console.warn('No session to sign out from');
+      return;
+    }
+    
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    }
+  };
+
+  const isSignedIn = state !== 'offline' && !!session;
+
   return (
     <>
-      <Pressable style={styles.container} onPress={handlePress}>
-        {getIcon()}
-        {!isMobile && showWebText && (
-          <Text style={[styles.text, { color: getTextColor() }]}>
-            {getFullText()}
-          </Text>
-        )}
-      </Pressable>
+      {isMobile ? (
+        <Pressable style={styles.containerMobile} onPress={handlePress}>
+          {getIcon()}
+        </Pressable>
+      ) : (
+        <Pressable style={styles.containerWeb} onPress={handlePress}>
+          {getIcon()}
+          {showWebText && (
+            <>
+              {isSignedIn && (
+                <>
+                  <Pressable onPress={handleSignOut}>
+                    <Text style={styles.logoutLink}>log out</Text>
+                  </Pressable>
+                  <Text style={[styles.text, { color: getTextColor() }]}>·</Text>
+                </>
+              )}
+              <Text style={[styles.text, { color: getTextColor() }]}>
+                {getFullText()}
+              </Text>
+            </>
+          )}
+        </Pressable>
+      )}
       
       {isMobile && (
         <Modal
@@ -143,6 +176,11 @@ export default function SyncStatus({ state, lastSync, version }: SyncStatusProps
             ]}
           >
             <Text style={styles.toastText}>{getFullText(true)}</Text>
+            {isSignedIn && (
+              <Pressable onPress={handleSignOut} style={styles.logoutButton}>
+                <Text style={styles.logoutLink}>log out</Text>
+              </Pressable>
+            )}
           </Animated.View>
         </Modal>
       )}
@@ -151,16 +189,38 @@ export default function SyncStatus({ state, lastSync, version }: SyncStatusProps
 }
 
 const styles = StyleSheet.create({
-  container: {
+  containerWeb: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  containerMobile: {
+    flexDirection: 'column',
+    alignItems: 'center',
+    gap: spacing.xs,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+  },
+  iconContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
   },
   text: {
     fontSize: typography.fontSize.tiny,
     fontFamily: typography.fontFamily.monospace,
+  },
+  logoutLink: {
+    fontSize: typography.fontSize.tiny,
+    fontFamily: typography.fontFamily.monospace,
+    color: colors.text.secondary,
+    textDecorationLine: 'underline',
+  },
+  logoutButton: {
+    marginTop: spacing.md,
+    alignSelf: 'center',
   },
   toast: {
     position: 'absolute',
