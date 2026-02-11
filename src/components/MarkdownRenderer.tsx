@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, RefreshControl, Platform, Linking } from 'react-native';
+import { View, Text, TextProps, StyleSheet, ScrollView, RefreshControl, Platform, Linking } from 'react-native';
 import MarkdownDisplay from 'react-native-markdown-display';
 import { parseTaskLine, parseLocalDate, getTodayLocal } from '@/src/utils/taskParser';
 import TaskLine from '@/src/components/TaskLine';
@@ -73,13 +73,13 @@ const markdownStyles = {
   em: {
     color: colors.text.primary,
   },
-  link: {
-    color: colors.accent,
-    ...(Platform.OS === 'web' && {
-      cursor: 'pointer',
-      textDecorationLine: 'underline',
-    }),
-  },
+    link: {
+      color: colors.accent,
+      ...(Platform.OS === 'web' && {
+        cursor: 'pointer',
+        textDecorationLine: 'underline' as const,
+      }),
+    },
   blockquote: {
     backgroundColor: colors.background.secondary,
     borderLeftColor: colors.border,
@@ -147,24 +147,22 @@ const markdownStyles = {
 
 // Custom render rules to ensure links are properly styled and clickable
 const renderRules = {
-  link: (node: any, children: any, parent: any, styles: any) => {
-    // Force link color on all children by cloning them with the link color style
-    const styledChildren = React.Children.map(children, (child) => {
-      if (React.isValidElement(child) && child.type === Text) {
-        return React.cloneElement(child as React.ReactElement<any>, {
-          style: [child.props.style, { color: colors.accent }],
-        });
-      }
-      return child;
-    });
-
+  link: (node: any, children: React.ReactNode, parent: any, styles: any) => {
     return (
       <Text
         key={node.key}
         style={[styles.link, { color: colors.accent }]}
-        onPress={() => Linking.openURL(node.attributes.href).catch((err) => console.error('Failed to open URL:', err))}
+        onPress={() => {
+          if (Platform.OS === 'web') {
+            // For iOS PWA, use window.open to force external Safari
+            window.open(node.attributes.href, '_blank', 'noopener,noreferrer');
+          } else {
+            // For native apps, use Linking
+            Linking.openURL(node.attributes.href).catch((err) => console.error('Failed to open URL:', err));
+          }
+        }}
       >
-        {styledChildren}
+        {children}
       </Text>
     );
   },
