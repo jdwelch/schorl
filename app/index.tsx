@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 
 import { storage, RemoteUpdate } from '@/src/utils/storage';
 import { syncLocalToRemote, getSyncStatus } from '@/src/utils/supabaseStorage';
-import { parseTaskLine, createRecurringTask } from '@/src/utils/taskParser';
+import { parseTaskLine, createRecurringTask, clearCompletedTasks } from '@/src/utils/taskParser';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useDebouncedSync } from '@/src/hooks/useDebouncedSync';
 import MarkdownEditor, { MarkdownEditorHandle } from '@/src/components/MarkdownEditor';
@@ -12,6 +12,7 @@ import MarkdownRenderer from '@/src/components/MarkdownRenderer';
 import AuthPrompt from '@/src/components/AuthPrompt';
 import SyncStatus, { SyncState } from '@/src/components/SyncStatus';
 import DevBanner from '@/src/components/DevBanner';
+import Toast from '@/src/components/Toast';
 
 const styles = StyleSheet.create({
   safeArea: {
@@ -46,6 +47,9 @@ export default function TasksScreen() {
   const [syncState, setSyncState] = useState<SyncState>('offline');
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [version, setVersion] = useState<number>(0);
+  const [undoContent, setUndoContent] = useState<string | null>(null);
+  const [showUndoToast, setShowUndoToast] = useState(false);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Debounced remote sync (1s debounce, 5s throttle)
   const { scheduleSync, flushSync } = useDebouncedSync({
@@ -84,6 +88,15 @@ export default function TasksScreen() {
       flushSync();
     };
   }, [flushSync]);
+
+  // Clean up undo timer on unmount
+  useEffect(() => {
+    return () => {
+      if (undoTimerRef.current) {
+        clearTimeout(undoTimerRef.current);
+      }
+    };
+  }, []);
 
   // Track if we have local pending changes (for conflict detection)
   const hasPendingChangesRef = useRef(false);
@@ -265,11 +278,57 @@ export default function TasksScreen() {
   const handleModeChange = async (newMode: Mode) => {
     // Flush any pending syncs before switching modes
     await flushSync();
+    
+    // Clear undo state when switching modes
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+    setUndoContent(null);
+    setShowUndoToast(false);
+    
     setMode(newMode);
   };
 
   const handleToggleTask = (newContent: string) => {
     handleContentChange(newContent);
+  };
+
+  const handleClearCompleted = () => {
+    // Clear any existing undo timer
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+
+    // Store current content for undo
+    setUndoContent(content);
+
+    // Filter out completed tasks
+    const filteredContent = clearCompletedTasks(content);
+    handleContentChange(filteredContent);
+
+    // Show undo toast
+    setShowUndoToast(true);
+  };
+
+  const handleUndo = () => {
+    if (undoContent !== null) {
+      handleContentChange(undoContent);
+    }
+    
+    // Clear timer and hide toast
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+    setUndoContent(null);
+    setShowUndoToast(false);
+  };
+
+  const handleUndoDismiss = () => {
+    setUndoContent(null);
+    setShowUndoToast(false);
   };
 
   // Keyboard shortcuts for web - Ctrl+E to toggle Edit/View mode, Ctrl+K for new task
@@ -336,6 +395,7 @@ export default function TasksScreen() {
                 !loading && <SyncStatus state={syncState} lastSync={lastSync} version={version} />
               }
               onRefresh={handleRefresh}
+              onClearCompleted={handleClearCompleted}
               onTaskToggle={(lineIndex, newLine) => {
                 const lines = content.split('\n');
                 const oldLine = lines[lineIndex];
@@ -366,6 +426,16 @@ export default function TasksScreen() {
             onDismiss={() => setShowAuthPrompt(false)}
           />
         )}
+
+        {/* Undo toast for clear completed action */}
+        <Toast
+          visible={showUndoToast}
+          message="Completed tasks cleared"
+          actionLabel="Undo"
+          onAction={handleUndo}
+          onDismiss={handleUndoDismiss}
+          duration={10000}
+        />
       </View>
     </SafeAreaView>
   );

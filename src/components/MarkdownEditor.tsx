@@ -1,5 +1,5 @@
 import { View, TextInput, Pressable, StyleSheet, Modal, Text, Platform, Dimensions } from 'react-native';
-import { CheckSquare, Calendar, Repeat, Edit2, Eye, Clock } from 'lucide-react-native';
+import { CheckSquare, Calendar, Repeat, Edit2, Eye, Clock, Trash2 } from 'lucide-react-native';
 import { useRef, useState, useEffect, useCallback, forwardRef, useImperativeHandle } from 'react';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Picker } from '@react-native-picker/picker';
@@ -86,9 +86,10 @@ interface ToolbarProps {
   filterScheduled?: boolean;
   onFilterDueToggle?: () => void;
   onFilterScheduledToggle?: () => void;
+  onClearCompleted?: () => void;
 }
 
-export function Toolbar({ mode, onModeChange, onNewTask, onDatePicker, onRecurrence, syncStatusComponent, filterDue, filterScheduled, onFilterDueToggle, onFilterScheduledToggle }: ToolbarProps) {
+export function Toolbar({ mode, onModeChange, onNewTask, onDatePicker, onRecurrence, syncStatusComponent, filterDue, filterScheduled, onFilterDueToggle, onFilterScheduledToggle, onClearCompleted }: ToolbarProps) {
   const iconSize = isMobile ? 16 : 12;
   
   return (
@@ -136,6 +137,11 @@ export function Toolbar({ mode, onModeChange, onNewTask, onDatePicker, onRecurre
             label="Scheduled Today/Past"
             onPress={onFilterScheduledToggle}
             active={filterScheduled}
+          />
+          <ToolbarButton
+            icon={<Trash2 size={iconSize} color="#9ca3af" strokeWidth={2} />}
+            label="Clear Completed"
+            onPress={onClearCompleted}
           />
         </>
       )}

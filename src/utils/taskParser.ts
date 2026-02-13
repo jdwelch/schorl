@@ -199,3 +199,13 @@ export function createRecurringTask(line: string): string | null {
 
   return `- [ ] ${newTaskDescription.trim()}`;
 }
+
+export function clearCompletedTasks(content: string): string {
+  const lines = content.split('\n');
+  const filteredLines = lines.filter(line => {
+    const metadata = parseTaskLine(line);
+    // Keep line if it's not a task, or if it's an unchecked task
+    return !metadata.isTask || !metadata.isChecked;
+  });
+  return filteredLines.join('\n');
+}

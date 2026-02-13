@@ -13,6 +13,7 @@ interface MarkdownRendererProps {
   onModeChange: (mode: 'edit' | 'read') => void;
   syncStatusComponent?: React.ReactNode;
   onRefresh?: () => Promise<void>;
+  onClearCompleted?: () => void;
 }
 
 const styles = StyleSheet.create({
@@ -175,7 +176,7 @@ interface ContentBlock {
   visible?: boolean; // determines if block should render when filters are active
 }
 
-export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeChange, syncStatusComponent, onRefresh }: MarkdownRendererProps) {
+export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeChange, syncStatusComponent, onRefresh, onClearCompleted }: MarkdownRendererProps) {
   const [refreshing, setRefreshing] = useState(false);
   const [filterDue, setFilterDue] = useState(false);
   const [filterScheduled, setFilterScheduled] = useState(false);
@@ -230,7 +231,12 @@ export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeCh
   if (!content.trim()) {
     return (
       <View style={styles.container}>
-        <Toolbar mode={mode} onModeChange={onModeChange} syncStatusComponent={syncStatusComponent} />
+        <Toolbar 
+          mode={mode} 
+          onModeChange={onModeChange} 
+          syncStatusComponent={syncStatusComponent}
+          onClearCompleted={onClearCompleted}
+        />
         <Text style={styles.emptyText}>No content to display</Text>
       </View>
     );
@@ -315,6 +321,7 @@ export default function MarkdownRenderer({ content, onTaskToggle, mode, onModeCh
         filterScheduled={filterScheduled}
         onFilterDueToggle={() => setFilterDue(!filterDue)}
         onFilterScheduledToggle={() => setFilterScheduled(!filterScheduled)}
+        onClearCompleted={onClearCompleted}
       />
       <ScrollView
         style={styles.scrollView}
