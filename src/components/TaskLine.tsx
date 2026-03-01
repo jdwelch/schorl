@@ -211,7 +211,7 @@ export default function TaskLine({ line, lineIndex, metadata, onToggle }: TaskLi
         )}
       </Pressable>
 
-      <View style={styles.content}>
+      <Pressable style={styles.content} onPress={handleToggle}>
         <Text
           style={[
             styles.taskText,
@@ -253,7 +253,10 @@ export default function TaskLine({ line, lineIndex, metadata, onToggle }: TaskLi
                 <Text
                   key={idx}
                   style={[...baseStyle, styles.taskLink]}
-                  onPress={() => Linking.openURL(segment.url!).catch((err) => console.error('Failed to open URL:', err))}
+                  onPress={(e) => {
+                    e?.stopPropagation?.();
+                    Linking.openURL(segment.url!).catch((err) => console.error('Failed to open URL:', err));
+                  }}
                 >
                   {segment.content}
                 </Text>
@@ -309,7 +312,7 @@ export default function TaskLine({ line, lineIndex, metadata, onToggle }: TaskLi
             <Text style={styles.badgeText}>✅ {metadata.doneDate}</Text>
           </View>
         )}
-      </View>
+      </Pressable>
     </View>
   );
 }
