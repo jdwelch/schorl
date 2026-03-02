@@ -209,3 +209,17 @@ export function clearCompletedTasks(content: string): string {
   });
   return filteredLines.join('\n');
 }
+
+export function countTasksDueToday(content: string): number {
+  const today = getTodayLocal();
+  const lines = content.split('\n');
+  
+  return lines.filter(line => {
+    const metadata = parseTaskLine(line);
+    // Count unchecked tasks where dueDate is today or earlier
+    if (!metadata.isTask || metadata.isChecked || !metadata.dueDate) {
+      return false;
+    }
+    return metadata.dueDate <= today;
+  }).length;
+}
