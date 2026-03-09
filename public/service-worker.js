@@ -1,7 +1,8 @@
 // Service Worker for offline caching
-// Cache names
-const CACHE_NAME = 'schorl-v1';
-const RUNTIME_CACHE = 'schorl-runtime-v1';
+// Cache names - bump version on every deploy to force cache refresh
+const CACHE_VERSION = Date.now();
+const CACHE_NAME = `schorl-v${CACHE_VERSION}`;
+const RUNTIME_CACHE = `schorl-runtime-v${CACHE_VERSION}`;
 
 // Assets to cache on install
 const PRECACHE_URLS = [
