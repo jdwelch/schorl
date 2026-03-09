@@ -4,7 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 
 import { storage, RemoteUpdate } from '@/src/utils/storage';
 import { syncLocalToRemote, getSyncStatus } from '@/src/utils/supabaseStorage';
-import { parseTaskLine, createRecurringTask, clearCompletedTasks } from '@/src/utils/taskParser';
+import { parseTaskLine, createRecurringTask, clearCompletedTasks, countTasksDueToday } from '@/src/utils/taskParser';
 import { useAuth } from '@/src/contexts/AuthContext';
 import { useDebouncedSync } from '@/src/hooks/useDebouncedSync';
 import MarkdownEditor, { MarkdownEditorHandle } from '@/src/components/MarkdownEditor';
@@ -97,6 +97,16 @@ export default function TasksScreen() {
       }
     };
   }, []);
+
+  // Update document title with task count badge
+  useEffect(() => {
+    if (Platform.OS === 'web') {
+      const count = countTasksDueToday(content);
+      if (typeof document !== 'undefined') {
+        document.title = count > 0 ? `(${count}) Schorl` : 'Schorl';
+      }
+    }
+  }, [content]);
 
   // Track if we have local pending changes (for conflict detection)
   const hasPendingChangesRef = useRef(false);

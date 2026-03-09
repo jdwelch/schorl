@@ -17,6 +17,7 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <Head>
+        <title>Schorl</title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
         <link rel="stylesheet" href="/global.css" />
         <link rel="manifest" href="/manifest.json" />
