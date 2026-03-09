@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Critical Rules
+
+**NEVER run `npm run deploy` without explicitly asking the user first.** Always confirm before deploying to production.
+
 ## Project Overview
 
 This is a mobile-first task management app built with Expo/React Native that uses **Obsidian Tasks markdown syntax** for task storage and management. The app targets iOS and web (Linux) equally, with Android deprioritized.
