@@ -1,8 +1,12 @@
+<img src="assets/images/splash-icon.png" alt="Schorl crystal" width="80" />
+
 # Schorl
 
 A mobile-first task management app that uses plain text and the Obsidian Tasks markdown syntax. I built this for one user's needs: my own. I LOVE Obsidian and its task plugins, but it's too heavy for quick, ephemeral tasks, like a grocery list you'd traditionally put on paper.
 
 > Disclaimer: 95% of this tool was generated with LLMs. If that turns you off, read no further.
+
+![Schorl on web and iOS](schorl-screenshot.png)
 
 ## Motivation
 
@@ -41,10 +45,10 @@ Built for iOS and web (Linux) with a monospace, dark-themed interface.
 
 ```bash
 # Install dependencies
-pnpm install
+npm install
 
 # Start development server
-pnpm expo start
+npm start
 ```
 
 ## Installing on iOS (Progressive Web App)
