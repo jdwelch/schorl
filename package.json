@@ -6,7 +6,7 @@
     "start": "expo start",
     "reset-project": "node ./scripts/reset-project.js",
     "android": "expo start --android",
-    "deploy": "echo see DEPLOY.md",
+    "deploy": "[ -f scripts/deploy-local.sh ] && bash scripts/deploy-local.sh || echo 'No local deploy script found. See DEPLOY.md'",
     "ios": "expo start --ios",
     "web": "expo start --web",
     "lint": "expo lint",

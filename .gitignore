@@ -53,3 +53,4 @@ TASKS.md
 mise.toml
 TODO.md
 DEPLOY.md
+scripts/deploy-local.sh
