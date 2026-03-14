@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI coding agents when working with code in this repository.
 
 ## Critical Rules
 
@@ -62,17 +62,43 @@ Supported metadata:
 - Uses regex patterns to parse all Obsidian Tasks metadata
 
 **`src/utils/storage.ts`** - Storage abstraction layer:
-- **Current Implementation**: AsyncStorage for device-local persistence only
-- **Storage Key**: `@schorl:content` - stores entire document as single string
-- **Interface**: `StorageAPI` with `getContent()` and `saveContent()` methods
-- **Design**: Clean abstraction ready for backend swap - storage implementation can be changed by swapping `localStorageAPI`
-- **Data Model**: Plain markdown text with no task IDs, versioning, or metadata beyond inline syntax
-- **Sync Strategy**: None currently - loads once on mount, saves on every content change
-- **Limitations**:
-  - No multi-device sync
-  - No conflict resolution
-  - No user authentication
-  - Saves on every keystroke (would need debouncing for remote storage)
+- **Interface**: `StorageAPI` with three methods:
+  - `getContent()` - Loads content (checks remote, falls back to local)
+  - `saveContent(content)` - Saves with retry logic, returns `SaveResult` with conflict info
+  - `saveContentLocal(content)` - Fast local-only save (used during typing)
+  - `subscribe(onUpdate)` - Optional realtime subscription (returns unsubscribe function)
+- **Current Implementation**: `supabaseStorageAPI` exported as `storage`
+- **Storage Keys**: 
+  - `@schorl:content` - Document content (local cache)
+  - `@schorl:version` - Document version number
+  - `@schorl:last-sync` - Last sync timestamp
+
+**`src/utils/supabaseStorage.ts`** - Supabase backend implementation:
+- **Authentication**: Gracefully falls back to local-only mode when not authenticated
+- **Sync Strategy**: 
+  - Optimistic local saves on every keystroke via `saveContentLocal()`
+  - `saveContent()` syncs to Supabase with optimistic locking (version-based)
+  - `getContent()` compares local vs remote version, uses newer
+  - Realtime subscription via `subscribe()` updates local cache on remote changes
+- **Conflict Resolution**: 
+  - Optimistic locking using integer `version` column
+  - Retry logic with exponential backoff (max 3 attempts)
+  - Returns `hadConflict: true` if retries occurred
+- **Database Schema**: Single `documents` table with columns:
+  - `user_id` (uuid, primary key) - Supabase auth user ID
+  - `content` (text) - Full markdown document
+  - `version` (integer) - Incremented on each save for optimistic locking
+  - `updated_at` (timestamp) - Auto-updated trigger
+- **SSR Safety**: All Supabase operations check `typeof window === 'undefined'` and bail early
+- **Helper Functions**:
+  - `getSyncStatus()` - Returns last sync time, version, and remote existence
+  - `syncLocalToRemote()` - Force-syncs local content to remote (useful after sign-in)
+
+**`src/lib/supabase.ts`** - Supabase client setup:
+- Platform-aware storage adapter (localStorage on web, AsyncStorage on native)
+- Auth persistence enabled with auto-refresh
+- Magic link detection enabled for web
+- SSR-safe client creation with placeholder during server render
 
 **`src/types/task.types.ts`** - TypeScript interfaces:
 - `TaskMetadata` - Parsed task information
@@ -163,11 +189,12 @@ import { storage } from '@/src/utils/storage';
 - **react-native-markdown-display** - Markdown rendering
 - **@react-native-community/datetimepicker** - Native date picker
 - **lucide-react-native** - Icons
-- **AsyncStorage** - Local persistence
+- **@supabase/supabase-js** - Backend client with realtime
+- **AsyncStorage** - Local persistence and cache
 
 ### Important Implementation Details
 
-1. **Auto-Save**: Content is automatically saved to AsyncStorage whenever it changes in the editor.
+1. **Auto-Save**: Content is saved locally on every keystroke via `saveContentLocal()`. Full sync to Supabase happens on blur or periodic intervals. Works offline and gracefully handles auth state.
 
 2. **Cursor Position Tracking**: MarkdownEditor tracks cursor position via `onSelectionChange` to enable smart metadata insertion on the correct task line.
 
